@@ -89,5 +89,5 @@ todo-netlify/
 
 ## Environment Variables
 
-- `DATABASE_URL` or `POSTGRES_URL`: PostgreSQL connection string
+- `NETLIFY_DATABASE_URL` or `POSTGRES_URL`: PostgreSQL connection string
 - `NODE_ENV`: Environment (development/production)
