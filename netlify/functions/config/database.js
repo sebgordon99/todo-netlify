@@ -1,11 +1,12 @@
 import { Sequelize } from "sequelize";
 
 // Get database connection string from environment variables
-const databaseUrl = process.env.POSTGRES_URL;
+const databaseUrl =
+  process.env.POSTGRES_URL || process.env.NETLIFY_DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL or POSTGRES_URL environment variable is required"
+    "NETLIFY_DATABASE_URL or POSTGRES_URL environment variable is required"
   );
 }
 
