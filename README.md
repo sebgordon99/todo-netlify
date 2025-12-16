@@ -91,3 +91,11 @@ todo-netlify/
 
 - `NETLIFY_DATABASE_URL` or `POSTGRES_URL`: PostgreSQL connection string
 - `NODE_ENV`: Environment (development/production)
+
+
+Update model process:
+- Add model following todo structure
+- update model index
+- Add controller following todo structure
+- Add route following todo structure
+- update route index
