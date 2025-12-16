@@ -1,21 +1,5 @@
 import Todo from "../models/Todo.js";
-import sequelize from "../config/database.js";
-
-// Initialize database connection and sync models
-let dbInitialized = false;
-
-async function initializeDatabase() {
-  if (!dbInitialized) {
-    try {
-      await sequelize.authenticate();
-      await Todo.sync({ alter: true }); // Use alter in production, or migrate properly
-      dbInitialized = true;
-    } catch (error) {
-      console.error("Unable to connect to the database:", error);
-      throw error;
-    }
-  }
-}
+import initializeDatabase from "../models/index.js";
 
 // Get all todos
 export const getAllTodos = async (req, res) => {
