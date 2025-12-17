@@ -4,6 +4,7 @@ import ads from "./ads.js";
 import availabilitys from "./availabilitys.js";
 import locations from "./locations.js"
 import instruments from "./instruments.js"
+import users from "./instruments.js"
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use("/ads", ads);
 router.use("/availabilitys", availabilitys);
 router.use("/locations", locations);
 router.use("/instruments", instruments);
+router.use("./users", users);
 
 export default router;
