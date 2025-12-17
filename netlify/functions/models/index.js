@@ -2,6 +2,7 @@ import Todo from "./Todo.js";
 import Ad from "./ad";
 import Availability from "./availability.js";
 import Location from "./location.js";
+import Instrument from "./instrument.js";
 import sequelize from "../config/database.js";
 
 // Initialize database connection and sync models
@@ -14,6 +15,7 @@ async function initializeDatabase() {
       await Ad.sync({ alter: true });
       await Availability.sync({ alter: true });
       await Location.sync({ alter: true });
+      await Instrument.sync({ alter: true });
       await Todo.sync({ alter: true }); // Use alter in production, or migrate properly
       dbInitialized = true;
     } catch (error) {
