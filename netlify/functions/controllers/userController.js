@@ -5,9 +5,7 @@ import initializeDatabase from "../models/index.js";
 export const getAllUsers = async (req, res) => {
   try {
     await initializeDatabase();
-    const users = await User.findAll({
-      order: [["createdAt", "DESC"]],
-    });
+    const users = await User.findAll();
     res.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -18,8 +16,8 @@ export const getAllUsers = async (req, res) => {
 // Get a single user by ID
 export const getUserById = async (req, res) => {
   try {
-    await initializeDatabase();
     const { id } = req.params;
+
     const user = await User.findByPk(id);
 
     if (!user) {
@@ -29,39 +27,57 @@ export const getUserById = async (req, res) => {
     res.json(user);
   } catch (error) {
     console.error("Error fetching user:", error);
-    res.status(500).json({ error: "Failed to fetch user" });
+    res.status(500).json({ error: error.message });
   }
 };
 
 // Create a new user
 export const createUser = async (req, res) => {
   try {
-    await initializeDatabase();
-    const { title, description, completed } = req.body;
+    const {
+      name,
+      avatar_url,
+      phone,
+      email,
+      username,
+      password,
+    } = req.body;
 
-    if (!title || title.trim() === "") {
-      return res.status(400).json({ error: "Title is required" });
+    // Basic required field checks
+    if (!name || !email || !username || !password) {
+      return res.status(400).json({
+        error: "name, email, username, and password are required",
+      });
     }
 
     const user = await User.create({
-      title: title.trim(),
-      description: description || null,
-      completed: completed || false,
+      name: name.trim(),
+      avatar_url: avatar_url || null,
+      phone: phone || null,
+      email: email.toLowerCase(),
+      username: username.trim(),
+      password, // (hash later)
     });
 
     res.status(201).json(user);
   } catch (error) {
     console.error("Error creating user:", error);
-    res.status(500).json({ error: "Failed to create user" });
+    res.status(500).json({ error: error.message });
   }
 };
 
 // Update a user
 export const updateUser = async (req, res) => {
   try {
-    await initializeDatabase();
     const { id } = req.params;
-    const { title, description, completed } = req.body;
+    const {
+      name,
+      avatar_url,
+      phone,
+      email,
+      username,
+      password,
+    } = req.body;
 
     const user = await User.findByPk(id);
 
@@ -69,33 +85,24 @@ export const updateUser = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (title !== undefined) {
-      if (title.trim() === "") {
-        return res.status(400).json({ error: "Title cannot be empty" });
-      }
-      user.title = title.trim();
-    }
-
-    if (description !== undefined) {
-      user.description = description;
-    }
-
-    if (completed !== undefined) {
-      user.completed = completed;
-    }
+    if (name !== undefined) user.name = name.trim();
+    if (avatar_url !== undefined) user.avatar_url = avatar_url;
+    if (phone !== undefined) user.phone = phone;
+    if (email !== undefined) user.email = email.toLowerCase();
+    if (username !== undefined) user.username = username.trim();
+    if (password !== undefined) user.password = password;
 
     await user.save();
     res.json(user);
   } catch (error) {
     console.error("Error updating user:", error);
-    res.status(500).json({ error: "Failed to update user" });
+    res.status(500).json({ error: error.message });
   }
 };
 
 // Delete a user
 export const deleteUser = async (req, res) => {
   try {
-    await initializeDatabase();
     const { id } = req.params;
 
     const user = await User.findByPk(id);
@@ -108,6 +115,6 @@ export const deleteUser = async (req, res) => {
     res.status(204).send();
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ error: "Failed to delete user" });
+    res.status(500).json({ error: error.message });
   }
 };
