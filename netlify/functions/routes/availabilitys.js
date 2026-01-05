@@ -1,12 +1,27 @@
-import { Router } from "express";
-import * as availabilityController from "../controllers/availabilityController.js";
+import express from "express";
+import { 
+  getAllAvailability,
+  getAvailabilityById,
+  createAvailability,
+  updateAvailability,
+  deleteAvailability
+} from "../controllers/availabilityController.js";
 
-const router = Router();
+const router = express.Router();
 
-router.get("/", availabilityController.getAllAvailabilitys);
-router.get("/:id", availabilityController.getAvailabilityById);
-router.post("/", availabilityController.createAvailability);
-router.put("/:id", availabilityController.updateAvailability);
-router.delete("/:id", availabilityController.deleteAvailability);
+// Get all availability records
+router.get("/", getAllAvailability);
+
+// Get a single availability by ID
+router.get("/:id", getAvailabilityById);
+
+// Create a new availability
+router.post("/", createAvailability);
+
+// Update an availability by ID
+router.put("/:id", updateAvailability);
+
+// Delete an availability by ID
+router.delete("/:id", deleteAvailability);
 
 export default router;

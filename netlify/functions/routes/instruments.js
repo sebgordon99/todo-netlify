@@ -1,12 +1,27 @@
-import { Router } from "express";
-import * as instrumentController from "../controllers/instrumentController.js";
+import express from "express";
+import { 
+  getAllInstruments,
+  getInstrumentById,
+  createInstrument,
+  updateInstrument,
+  deleteInstrument
+} from "../controllers/instrumentController.js";
 
-const router = Router();
+const router = express.Router();
 
-router.get("/", instrumentController.getAllInstruments);
-router.get("/:id", instrumentController.getInstrumentById);
-router.post("/", instrumentController.createInstrument);
-router.put("/:id", instrumentController.updateInstrument);
-router.delete("/:id", instrumentController.deleteInstrument);
+// Get all instruments
+router.get("/", getAllInstruments);
+
+// Get a single instrument by ID
+router.get("/:id", getInstrumentById);
+
+// Create a new instrument
+router.post("/", createInstrument);
+
+// Update an instrument by ID
+router.put("/:id", updateInstrument);
+
+// Delete an instrument by ID
+router.delete("/:id", deleteInstrument);
 
 export default router;

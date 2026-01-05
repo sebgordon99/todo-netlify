@@ -1,12 +1,27 @@
-import { Router } from "express";
-import * as adController from "../controllers/adController.js";
+import express from "express";
+import { 
+  getAllAds,
+  getAdById,
+  createAd,
+  updateAd,
+  deleteAd
+} from "../controllers/adController.js";
 
-const router = Router();
+const router = express.Router();
 
-router.get("/", adController.getAllAds);
-router.get("/:id", adController.getAdById);
-router.post("/", adController.createAd);
-router.put("/:id", adController.updateAd);
-router.delete("/:id", adController.deleteAd);
+// Get all ads
+router.get("/", getAllAds);
+
+// Get a single ad by ID
+router.get("/:id", getAdById);
+
+// Create a new ad
+router.post("/", createAd);
+
+// Update an ad by ID
+router.put("/:id", updateAd);
+
+// Delete an ad by ID
+router.delete("/:id", deleteAd);
 
 export default router;

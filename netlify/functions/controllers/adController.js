@@ -1,24 +1,21 @@
 import Ad from "../models/ad.js";
-import initializeDatabase from "../models/index.js";
 
 // Get all ads
 export const getAllAds = async (req, res) => {
   try {
-    await initializeDatabase();
     const ads = await Ad.findAll({
-      order: [["createdAt", "DESC"]],
+      order: [["ad_id", "DESC"]], // newest first
     });
     res.json(ads);
   } catch (error) {
     console.error("Error fetching ads:", error);
-    res.status(500).json({ error: "Failed to fetch ads" });
+    res.status(500).json({ error: error.message });
   }
 };
 
 // Get a single ad by ID
 export const getAdById = async (req, res) => {
   try {
-    await initializeDatabase();
     const { id } = req.params;
     const ad = await Ad.findByPk(id);
 
@@ -29,75 +26,91 @@ export const getAdById = async (req, res) => {
     res.json(ad);
   } catch (error) {
     console.error("Error fetching ad:", error);
-    res.status(500).json({ error: "Failed to fetch ad" });
+    res.status(500).json({ error: error.message });
   }
 };
 
 // Create a new ad
 export const createAd = async (req, res) => {
   try {
-    await initializeDatabase();
-    const { title, description, completed } = req.body;
+    const {
+      tutor_id,
+      location_id,
+      instrument_id,
+      ad_description,
+      years_experience,
+      hourly_rate,
+      img_url,
+      destroy_at,
+    } = req.body;
 
-    if (!title || title.trim() === "") {
-      return res.status(400).json({ error: "Title is required" });
+    // Required fields validation
+    if (!tutor_id || !instrument_id || !ad_description) {
+      return res.status(400).json({
+        error: "tutor_id, instrument_id, and ad_description are required",
+      });
     }
 
     const ad = await Ad.create({
-      title: title.trim(),
-      description: description || null,
-      completed: completed || false,
+      tutor_id,
+      location_id: location_id || null,
+      instrument_id,
+      ad_description,
+      years_experience: years_experience || 0,
+      hourly_rate: hourly_rate || 0,
+      img_url: img_url || null,
+      destroy_at: destroy_at || null,
     });
 
     res.status(201).json(ad);
   } catch (error) {
     console.error("Error creating ad:", error);
-    res.status(500).json({ error: "Failed to create ad" });
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Update a ad
+// Update an existing ad
 export const updateAd = async (req, res) => {
   try {
-    await initializeDatabase();
     const { id } = req.params;
-    const { title, description, completed } = req.body;
+    const {
+      tutor_id,
+      location_id,
+      instrument_id,
+      ad_description,
+      years_experience,
+      hourly_rate,
+      img_url,
+      destroy_at,
+    } = req.body;
 
     const ad = await Ad.findByPk(id);
-
     if (!ad) {
       return res.status(404).json({ error: "Ad not found" });
     }
 
-    if (title !== undefined) {
-      if (title.trim() === "") {
-        return res.status(400).json({ error: "Title cannot be empty" });
-      }
-      ad.title = title.trim();
-    }
-
-    if (description !== undefined) {
-      ad.description = description;
-    }
-
-    if (completed !== undefined) {
-      ad.completed = completed;
-    }
+    // Only update fields that are present in the request
+    if (tutor_id !== undefined) ad.tutor_id = tutor_id;
+    if (location_id !== undefined) ad.location_id = location_id;
+    if (instrument_id !== undefined) ad.instrument_id = instrument_id;
+    if (ad_description !== undefined) ad.ad_description = ad_description;
+    if (years_experience !== undefined) ad.years_experience = years_experience;
+    if (hourly_rate !== undefined) ad.hourly_rate = hourly_rate;
+    if (img_url !== undefined) ad.img_url = img_url;
+    if (destroy_at !== undefined) ad.destroy_at = destroy_at;
 
     await ad.save();
     res.json(ad);
   } catch (error) {
     console.error("Error updating ad:", error);
-    res.status(500).json({ error: "Failed to update ad" });
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Delete a ad
+// Delete an ad
 export const deleteAd = async (req, res) => {
   try {
-    await initializeDatabase();
     const { id } = req.params;
-
     const ad = await Ad.findByPk(id);
 
     if (!ad) {
@@ -108,6 +121,6 @@ export const deleteAd = async (req, res) => {
     res.status(204).send();
   } catch (error) {
     console.error("Error deleting ad:", error);
-    res.status(500).json({ error: "Failed to delete ad" });
+    res.status(500).json({ error: error.message });
   }
 };

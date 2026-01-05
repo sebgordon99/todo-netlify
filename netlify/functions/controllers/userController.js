@@ -1,15 +1,15 @@
 import User from "../models/user.js";
-import initializeDatabase from "../models/index.js";
 
 // Get all users
 export const getAllUsers = async (req, res) => {
   try {
-    await initializeDatabase();
-    const users = await User.findAll();
+    const users = await User.findAll({
+      order: [["user_id", "DESC"]], // newest first
+    });
     res.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
-    res.status(500).json({ error: "Failed to fetch users" });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -17,12 +17,9 @@ export const getAllUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const user = await User.findByPk(id);
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     res.json(user);
   } catch (error) {
@@ -34,16 +31,8 @@ export const getUserById = async (req, res) => {
 // Create a new user
 export const createUser = async (req, res) => {
   try {
-    const {
-      name,
-      avatar_url,
-      phone,
-      email,
-      username,
-      password,
-    } = req.body;
+    const { name, avatar_url, phone, email, username, password } = req.body;
 
-    // Basic required field checks
     if (!name || !email || !username || !password) {
       return res.status(400).json({
         error: "name, email, username, and password are required",
@@ -56,7 +45,7 @@ export const createUser = async (req, res) => {
       phone: phone || null,
       email: email.toLowerCase(),
       username: username.trim(),
-      password, // (hash later)
+      password, // hash later for security
     });
 
     res.status(201).json(user);
@@ -70,20 +59,10 @@ export const createUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      name,
-      avatar_url,
-      phone,
-      email,
-      username,
-      password,
-    } = req.body;
+    const { name, avatar_url, phone, email, username, password } = req.body;
 
     const user = await User.findByPk(id);
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     if (name !== undefined) user.name = name.trim();
     if (avatar_url !== undefined) user.avatar_url = avatar_url;
@@ -104,12 +83,9 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-
     const user = await User.findByPk(id);
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     await user.destroy();
     res.status(204).send();
