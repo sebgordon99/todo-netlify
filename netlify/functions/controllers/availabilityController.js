@@ -1,6 +1,6 @@
 import Availability from "../models/availability.js";
 
-// Get all availabilities
+// Get all availability
 export const getAllAvailability = async (req, res) => {
   try {
     const availabilities = await Availability.findAll({

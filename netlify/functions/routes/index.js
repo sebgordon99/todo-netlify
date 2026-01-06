@@ -1,5 +1,4 @@
 import { Router } from "express";
-import todos from "./todos.js";
 import ads from "./ads.js";
 import availability from "./availability.js";
 import locations from "./locations.js";
@@ -9,7 +8,6 @@ import tutors from "./tutors.js";
 
 const router = Router();
 
-router.use("/todos", todos);
 router.use("/ads", ads);
 router.use("/availability", availability);
 router.use("/locations", locations);

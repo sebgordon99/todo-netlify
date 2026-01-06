@@ -1,4 +1,3 @@
-import Todo from "./Todo.js";
 import Ad from "./ad";
 import Availability from "./availability.js";
 import Location from "./location.js";
@@ -119,7 +118,6 @@ async function initializeDatabase() {
       await UserFavouriteInstrument.sync({ alter: true });
       await UserFavouriteLocation.sync({ alter: true });
       await UserFavouriteTutor.sync({ alter: true });
-      await Todo.sync({ alter: true }); // Use alter in production, or migrate properly
 
       dbInitialized = true;
     } catch (error) {
