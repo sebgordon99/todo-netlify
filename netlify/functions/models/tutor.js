@@ -2,58 +2,33 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
 
 const Tutor = sequelize.define(
-    "Tutor",
-    {
-      tutor_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-
-      account_status: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-        defaultValue: "active",
-      },
-
-      name: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-      },
-
-      avatar_url: {
-        type: DataTypes.STRING(255),
-      },
-
-      phone: {
-        type: DataTypes.STRING(20),
-      },
-
-      email: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-        unique: true,
-        validate: {
-          isEmail: true,
-        },
-      },
-
-      username: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-        unique: true,
-      },
-
-      password: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-      },
+  "Tutor",
+  {
+    tutor_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
-    {
-      tableName: "tutors",
-      timestamps: false,
-      underscored: true,
-    }
-  );
+    account_status: DataTypes.STRING,
+    name: DataTypes.STRING,
+    avatar_url: DataTypes.STRING,
+    phone: DataTypes.STRING(20),
+    email: {
+      type: DataTypes.STRING,
+      unique: true,
+    },
+    username: {
+      type: DataTypes.STRING,
+      unique: true,
+    },
+    password: DataTypes.STRING,
+  },
+  {
+    tableName: "tutors",
+    underscored: true,
+    timestamps: false,
+    paranoid: true,
+  }
+);
 
 export default Tutor;

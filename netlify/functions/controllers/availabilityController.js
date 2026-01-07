@@ -1,4 +1,4 @@
-import Availability from "../models/availability.js";
+import Availability from "../models/Availability.js";
 
 // Get all availability
 export const getAllAvailability = async (req, res) => {
@@ -19,7 +19,8 @@ export const getAvailabilityById = async (req, res) => {
     const { id } = req.params;
     const availability = await Availability.findByPk(id);
 
-    if (!availability) return res.status(404).json({ error: "Availability not found" });
+    if (!availability)
+      return res.status(404).json({ error: "Availability not found" });
 
     res.json(availability);
   } catch (error) {
@@ -31,7 +32,8 @@ export const getAvailabilityById = async (req, res) => {
 // Create a new availability
 export const createAvailability = async (req, res) => {
   try {
-    const { user_id, ad_id, start_time, end_time, is_booked, user_capacity } = req.body;
+    const { user_id, ad_id, start_time, end_time, is_booked, user_capacity } =
+      req.body;
 
     if (!user_id || !ad_id || !start_time || !end_time) {
       return res.status(400).json({
@@ -59,10 +61,12 @@ export const createAvailability = async (req, res) => {
 export const updateAvailability = async (req, res) => {
   try {
     const { id } = req.params;
-    const { user_id, ad_id, start_time, end_time, is_booked, user_capacity } = req.body;
+    const { user_id, ad_id, start_time, end_time, is_booked, user_capacity } =
+      req.body;
 
     const availability = await Availability.findByPk(id);
-    if (!availability) return res.status(404).json({ error: "Availability not found" });
+    if (!availability)
+      return res.status(404).json({ error: "Availability not found" });
 
     if (user_id !== undefined) availability.user_id = user_id;
     if (ad_id !== undefined) availability.ad_id = ad_id;
@@ -85,7 +89,8 @@ export const deleteAvailability = async (req, res) => {
     const { id } = req.params;
     const availability = await Availability.findByPk(id);
 
-    if (!availability) return res.status(404).json({ error: "Availability not found" });
+    if (!availability)
+      return res.status(404).json({ error: "Availability not found" });
 
     await availability.destroy();
     res.status(204).send();

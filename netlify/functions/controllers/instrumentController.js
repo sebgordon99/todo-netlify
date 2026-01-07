@@ -1,4 +1,4 @@
-import Instrument from "../models/instrument.js";
+import Instrument from "../models/Instrument.js";
 
 // Get all instruments
 export const getAllInstruments = async (req, res) => {
@@ -19,7 +19,8 @@ export const getInstrumentById = async (req, res) => {
     const { id } = req.params;
     const instrument = await Instrument.findByPk(id);
 
-    if (!instrument) return res.status(404).json({ error: "Instrument not found" });
+    if (!instrument)
+      return res.status(404).json({ error: "Instrument not found" });
 
     res.json(instrument);
   } catch (error) {
@@ -52,9 +53,11 @@ export const updateInstrument = async (req, res) => {
     const { instrument_name } = req.body;
 
     const instrument = await Instrument.findByPk(id);
-    if (!instrument) return res.status(404).json({ error: "Instrument not found" });
+    if (!instrument)
+      return res.status(404).json({ error: "Instrument not found" });
 
-    if (instrument_name !== undefined) instrument.instrument_name = instrument_name;
+    if (instrument_name !== undefined)
+      instrument.instrument_name = instrument_name;
 
     await instrument.save();
     res.json(instrument);
@@ -70,7 +73,8 @@ export const deleteInstrument = async (req, res) => {
     const { id } = req.params;
     const instrument = await Instrument.findByPk(id);
 
-    if (!instrument) return res.status(404).json({ error: "Instrument not found" });
+    if (!instrument)
+      return res.status(404).json({ error: "Instrument not found" });
 
     await instrument.destroy();
     res.status(204).send();

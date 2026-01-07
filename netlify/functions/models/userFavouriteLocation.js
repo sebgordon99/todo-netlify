@@ -2,13 +2,23 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
 
 const UserFavouriteLocation = sequelize.define(
-    "UserFavouriteLocation",
-    {},
-    {
-      tableName: "user_favourite_locations",
-      timestamps: false,
-      underscored: true,
-    }
-  );
+  "UserFavouriteLocation",
+  {
+    user_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      allowNull: false,
+    },
+    location_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      allowNull: false,
+    },
+  },
+  {
+    tableName: "user_favourite_locations",
+    timestamps: false,
+  }
+);
 
 export default UserFavouriteLocation;

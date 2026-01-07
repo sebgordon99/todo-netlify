@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 
 const Ad = sequelize.define(
   "Ad",
@@ -9,37 +9,19 @@ const Ad = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-
-    ad_description: {
-      type: DataTypes.STRING(255),
-    },
-
-    years_experience: {
-      type: DataTypes.INTEGER,
-    },
-
-    hourly_rate: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-    },
-
-    img_url: {
-      type: DataTypes.STRING(255),
-    },
-
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-
-    destroy_at: {
-      type: DataTypes.DATE,
-    },
+    tutor_id: DataTypes.INTEGER,
+    location_id: DataTypes.INTEGER,
+    instrument_id: DataTypes.INTEGER,
+    ad_description: DataTypes.STRING,
+    years_experience: DataTypes.INTEGER,
+    hourly_rate: DataTypes.FLOAT,
+    img_url: DataTypes.STRING,
+    created_at: DataTypes.DATE,
+    destroy_at: DataTypes.DATE,
   },
   {
     tableName: "ads",
     timestamps: false,
-    underscored: true,
   }
 );
 

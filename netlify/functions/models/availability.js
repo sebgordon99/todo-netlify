@@ -2,39 +2,27 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
 
 const Availability = sequelize.define(
-    "Availability",
-    {
-      availability_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-
-      start_time: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-
-      end_time: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-
-      is_booked: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-      },
-
-      user_capacity: {
-        type: DataTypes.INTEGER,
-        defaultValue: 1,
-      },
+  "Availability",
+  {
+    availability_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
-    {
-      tableName: "availability",
-      timestamps: false,
-      underscored: true,
-    }
-  );
+    start_time: DataTypes.DATE,
+    end_time: DataTypes.DATE,
+    capacity: DataTypes.INTEGER,
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+  },
+  {
+    tableName: "availabilities",
+    underscored: true,
+    timestamps: true,
+    paranoid: true,
+  }
+);
 
 export default Availability;
