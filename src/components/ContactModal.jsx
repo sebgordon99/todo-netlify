@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { mockAvailabilityByAdId } from "../data/mockAvailability";
 
 function formatRange(start, end) {
   try {
@@ -41,36 +42,14 @@ export function ContactModal({ tutor, onClose }) {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // If we don't have an adId yet (older mock data etc), don't fetch.
-    if (!tutor?.adId) {
-      setSlots([]);
-      setLoading(false);
-      return;
-    }
+useEffect(() => {
+  setLoading(true);
 
-    let cancelled = false;
+  const slotsForAd = mockAvailabilityByAdId[tutor?.adId] || [];
+  setSlots(slotsForAd);
 
-    async function fetchAvailability() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/ads/${tutor.adId}/availability`);
-        const data = await res.json();
-        if (!cancelled) setSlots(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error("Failed to fetch availability", e);
-        if (!cancelled) setSlots([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchAvailability();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [tutor?.adId]);
+  setLoading(false);
+}, [tutor?.adId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -126,37 +105,22 @@ export function ContactModal({ tutor, onClose }) {
 
       {/* ✅ Book button belongs INSIDE the map so "s" exists */}
       {!s.is_booked && (
-        <Button
-          type="button"
-          className="mt-2"
-          onClick={async () => {
-            const res = await fetch(
-              `/api/availability/${s.availability_id}/book`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: 1 }), // demo user
-              }
-            );
-
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              alert(err.error || "Failed to book");
-              return;
-            }
-
-            const updated = await res.json();
-
-            setSlots((prev) =>
-              prev.map((x) =>
-                x.availability_id === updated.availability_id ? updated : x
-              )
-            );
-          }}
-        >
-          Book this time
-        </Button>
-      )}
+  <Button
+    type="button"
+    className="mt-2"
+    onClick={() => {
+      setSlots((prev) =>
+        prev.map((x) =>
+          x.availability_id === s.availability_id
+            ? { ...x, is_booked: true }
+            : x
+        )
+      );
+    }}
+  >
+    Book this time
+  </Button>
+)}
     </li>
   ))}
 </ul>

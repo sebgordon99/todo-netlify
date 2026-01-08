@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "./components/ui/select";
 import { Music, Search, LogIn } from "lucide-react";
+import { mockAds } from "./data/mockAds";
 
 function adToCardModel(ad) {
   return {
@@ -39,7 +40,7 @@ function adToCardModel(ad) {
 
 export default function App() {
   // const [tutors, setTutors] = useState(initialMockTutors);
-  const [tutors, setTutors] = useState([]);
+  const [tutors, setTutors] = useState(mockAds);
 
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [selectedSuburbs, setSelectedSuburbs] = useState([]);
@@ -113,13 +114,22 @@ useEffect(() => {
     setIsLoggedIn(false);
   };
 
-  const handleCreateAdvertisement = (newTutor) => {
-    const tutorWithId = {
-      ...newTutor,
-      id: String(Date.now()),
-    };
-    setTutors([...tutors, tutorWithId]);
+const handleCreateAdvertisement = (newTutor) => {
+  const tutorWithId = {
+    ...newTutor,
+    id: String(Date.now()),
+    adId: Number(Date.now()), // for availability mapping
+    rating: 5.0,
+    totalReviews: 0,
+    image: newTutor.image || "https://images.unsplash.com/photo-1520975693410-0018c6fbbf74?auto=format&fit=crop&w=1200&q=60",
+    instruments: newTutor.instruments || [],
+    suburb: newTutor.suburb || "Sydney",
+    experience: Number(newTutor.experience ?? 0),
+    hourlyRate: Number(newTutor.hourlyRate ?? 0),
   };
+
+  setTutors((prev) => [tutorWithId, ...prev]);
+};
 
   // Get unique instruments and suburbs from all tutors
   const availableInstruments = useMemo(() => {
