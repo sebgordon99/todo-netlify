@@ -1,4 +1,5 @@
 import Ad from "../models/ad.js";
+import Availability from "../models/Availability.js";
 
 // Get all ads
 export const getAllAds = async (req, res) => {
@@ -122,5 +123,25 @@ export const deleteAd = async (req, res) => {
   } catch (error) {
     console.error("Error deleting ad:", error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+// get availability for an ad
+export const getAvailabilityForAd = async (req, res) => {
+  try {
+    const adId = Number(req.params.id);
+    if (!Number.isFinite(adId)) {
+      return res.status(400).json({ error: "Invalid ad id" });
+    }
+
+    const slots = await Availability.findAll({
+      where: { ad_id: adId },
+      order: [["start_time", "ASC"]],
+    });
+
+    return res.json(slots);
+  } catch (error) {
+    console.error("Error fetching availability for ad:", error);
+    return res.status(500).json({ error: error.message });
   }
 };

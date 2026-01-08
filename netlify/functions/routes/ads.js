@@ -4,13 +4,17 @@ import {
   getAdById,
   createAd,
   updateAd,
-  deleteAd
+  deleteAd,
+  getAvailabilityForAd
 } from "../controllers/adController.js";
 
 const router = express.Router();
 
 // Get all ads
 router.get("/", getAllAds);
+
+// Get availability by ad
+router.get("/:id/availability", getAvailabilityForAd);
 
 // Get a single ad by ID
 router.get("/:id", getAdById);

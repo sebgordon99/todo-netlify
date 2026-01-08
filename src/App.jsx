@@ -18,6 +18,25 @@ import {
 } from "./components/ui/select";
 import { Music, Search, LogIn } from "lucide-react";
 
+function adToCardModel(ad) {
+  return {
+    // keep your UI keys
+    id: String(ad.ad_id),              // TutorCard uses tutor.id
+    name: `Ad #${ad.ad_id}`,           // placeholder for now
+    avatarUrl: ad.img_url || "",       // optional
+    bio: ad.ad_description || "",
+    experience: ad.years_experience ?? 0,
+    hourlyRate: Number(ad.hourly_rate ?? 0),
+    rating: 4.7,                       // placeholder for demo
+    instruments: ["Guitar"],           // placeholder until we join instruments
+    suburb: "Sydney",                  // placeholder until we join locations
+    availability: [],                  // we’ll fetch real slots per-ad
+
+    // IMPORTANT: keep the real ad id for API calls
+    adId: ad.ad_id,
+  };
+}
+
 export default function App() {
   // const [tutors, setTutors] = useState(initialMockTutors);
   const [tutors, setTutors] = useState([]);
@@ -30,6 +49,30 @@ export default function App() {
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function fetchAds() {
+    try {
+      const res = await fetch("/api/ads");
+      const data = await res.json();
+
+      if (!cancelled) {
+        setTutors(Array.isArray(data) ? data.map(adToCardModel) : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch ads", err);
+      if (!cancelled) setTutors([]);
+    }
+  }
+
+  fetchAds();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   useEffect(() => {
     async function fetchAds() {

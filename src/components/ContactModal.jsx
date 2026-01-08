@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,16 @@ import {
   SelectValue,
 } from "./ui/select";
 
+function formatRange(start, end) {
+  try {
+    const s = new Date(start);
+    const e = new Date(end);
+    return `${s.toLocaleString()} – ${e.toLocaleString()}`;
+  } catch {
+    return `${start} – ${end}`;
+  }
+}
+
 export function ContactModal({ tutor, onClose }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -28,9 +38,42 @@ export function ContactModal({ tutor, onClose }) {
     message: "",
   });
 
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // If we don't have an adId yet (older mock data etc), don't fetch.
+    if (!tutor?.adId) {
+      setSlots([]);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchAvailability() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/ads/${tutor.adId}/availability`);
+        const data = await res.json();
+        if (!cancelled) setSlots(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("Failed to fetch availability", e);
+        if (!cancelled) setSlots([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchAvailability();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tutor?.adId]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    // In a real app, this would send the message
     alert(
       `Message sent to ${tutor.name}!\n\nYour details:\nName: ${formData.name}\nEmail: ${formData.email}\nInstrument: ${formData.instrument}`
     );
@@ -52,7 +95,42 @@ export function ContactModal({ tutor, onClose }) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* ✅ Availability section */}
+        <div className="space-y-2 rounded-md border p-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium">Available times</h4>
+            {!tutor?.adId ? (
+              <span className="text-xs text-muted-foreground">No ad id</span>
+            ) : null}
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : slots.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No availability posted yet.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {slots.map((s) => (
+                <li
+                  key={s.availability_id}
+                  className="rounded-md border px-3 py-2 text-sm"
+                >
+                  <div>{formatRange(s.start_time, s.end_time)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {s.is_booked ? "Booked" : "Open"}
+                    {typeof s.user_capacity === "number"
+                      ? ` · Capacity: ${s.user_capacity}`
+                      : ""}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Your Name *</Label>
             <Input
@@ -98,7 +176,7 @@ export function ContactModal({ tutor, onClose }) {
                 <SelectValue placeholder="Select an instrument" />
               </SelectTrigger>
               <SelectContent>
-                {tutor.instruments.map((instrument) => (
+                {(tutor.instruments || []).map((instrument) => (
                   <SelectItem key={instrument} value={instrument}>
                     {instrument}
                   </SelectItem>
