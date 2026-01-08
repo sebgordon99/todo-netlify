@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { mockTutors } from "./data/mockTutors";
+import { mockTutors as initialMockTutors } from "./data/mockTutors";
 import { FilterPanel } from "./components/FilterPanel";
 import { TutorCard } from "./components/TutorCard";
 import { ContactModal } from "./components/ContactModal";
@@ -89,7 +89,6 @@ function makeSlotsFromDays(days, countPerDay = 1) {
 export default function App() {
   // const [tutors, setTutors] = useState(initialMockTutors);
   // const [tutors, setTutors] = useState(mockAds);
-  const [tutors, setTutors] = useState([]);
 
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [selectedSuburbs, setSelectedSuburbs] = useState([]);
@@ -99,66 +98,67 @@ export default function App() {
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-useEffect(() => {
-  async function fetchAds() {
-    try {
-      const res = await fetch("/api/ads");
-      const data = await res.json();
-
-      // Map DB ads → TutorCard shape
-      const mapped = data.map((ad) => ({
-        id: ad.ad_id,
-        adId: ad.ad_id,                 // IMPORTANT
-        name: ad.Tutor?.name ?? "Tutor",
-        suburb: ad.Location?.location_name ?? "Unknown",
-        bio: ad.ad_description,
-        experience: ad.years_experience,
-        hourlyRate: ad.hourly_rate,
-        image: ad.img_url || "https://placehold.co/600x400",
-        instruments: [ad.Instrument?.instrument_name].filter(Boolean),
-        rating: 5,
-        totalReviews: 0,
-      }));
-
-      setTutors(mapped);
-    } catch (err) {
-      console.error("Failed to load ads", err);
-    }
-  }
-
-  fetchAds();
-}, []);
-
+  const [tutors, setTutors] = useState(initialMockTutors);
+  const [loadingAds, setLoadingAds] = useState(false);
 
   useEffect(() => {
-    async function fetchAds() {
+    let cancelled = false;
+
+    async function loadAds() {
+      setLoadingAds(true);
       try {
         const res = await fetch("/api/ads");
-        const data = await res.json();
+        const ads = await res.json();
 
-        const apiTutors = data.map((ad) => ({
-          id: `api-${ad.ad_id}`,
-          name: ad.tutor?.name ?? "Unknown Tutor",
-          avatar: ad.tutor?.avatar_url ?? null,
-          suburb: ad.location?.location_name ?? "Unknown",
-          instruments: [ad.instrument?.instrument_name].filter(Boolean),
-          bio: ad.ad_description,
-          hourlyRate: ad.hourly_rate,
-          experience: ad.years_experience,
-          rating: 5,
-          availability: [],
+        // Map API ad -> TutorCard shape
+        const mapped = (Array.isArray(ads) ? ads : []).map((ad) => ({
+          // IMPORTANT: TutorCard expects tutor.id
+          id: `ad-${ad.ad_id}`,
+
+          // ContactModal expects tutor.adId
+          adId: ad.ad_id,
+
+          // Display fields used by TutorCard / filters
+          name: `Tutor #${ad.tutor_id}`, // MVP: until you join tutor table
+          suburb: "Melbourne CBD", // MVP: until you join locations
+          image:
+            ad.img_url ||
+            "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600&h=400&fit=crop",
+          bio: ad.ad_description || "",
+          instruments: ["Piano"], // MVP: until you join instruments
+
+          experience: ad.years_experience ?? 0,
+          hourlyRate: Number(ad.hourly_rate ?? 0),
+
+          // Keep your sort UI working
+          rating: 5.0,
+          totalReviews: 0,
+
+          // Optional: you can show the raw ids if needed later
+          tutor_id: ad.tutor_id,
+          location_id: ad.location_id,
+          instrument_id: ad.instrument_id,
         }));
 
-        // 🔥 merge mock + API
-        setTutors([...mockTutors, ...apiTutors]);
-      } catch (err) {
-        console.error("Failed to fetch ads", err);
-        setTutors(mockTutors); // fallback safety
+        if (!cancelled) {
+          // Option A: Replace mock tutors with API tutors
+          setTutors(mapped);
+
+          // Option B: Keep mock tutors AND show API tutors too:
+          // setTutors([...initialMockTutors, ...mapped]);
+        }
+      } catch (e) {
+        console.error("Failed to load ads", e);
+        // If API fails, keep mock tutors
+      } finally {
+        if (!cancelled) setLoadingAds(false);
       }
     }
 
-    fetchAds();
+    loadAds();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleLogin = () => {
