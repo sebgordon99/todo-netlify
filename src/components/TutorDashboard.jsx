@@ -7,10 +7,32 @@ import { CreateAdvertisement } from "./CreateAdvertisement";
 export function TutorDashboard({ onLogout, onCreateAdvertisement }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const handleCreateAd = (newTutor) => {
-    onCreateAdvertisement(newTutor);
-    setShowCreateForm(false);
-  };
+  const handleCreateAd = async (newTutor) => {
+  const res = await fetch("/api/ads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tutor_id: 1,              // demo tutor
+      instrument_id: 1,         // demo instrument
+      location_id: 1,
+      ad_description: newTutor.bio,
+      years_experience: newTutor.experience,
+      hourly_rate: newTutor.hourlyRate,
+      img_url: newTutor.image,
+    }),
+  });
+
+  const created = await res.json();
+
+  setTutors((prev) => [
+    {
+      ...newTutor,
+      id: created.ad_id,
+      adId: created.ad_id,
+    },
+    ...prev,
+  ]);
+};
 
   return (
     <div className="min-h-screen bg-background">

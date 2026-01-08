@@ -1,11 +1,15 @@
 import Ad from "../models/ad.js";
 import Availability from "../models/Availability.js";
+import Tutor from "../models/Tutor.js";
+import Location from "../models/Location.js";
+import Instrument from "../models/Instrument.js";
 
 // Get all ads
 export const getAllAds = async (req, res) => {
   try {
     const ads = await Ad.findAll({
-      order: [["ad_id", "DESC"]], // newest first
+      order: [["ad_id", "DESC"]],
+      include: [Tutor, Location, Instrument],
     });
     res.json(ads);
   } catch (error) {

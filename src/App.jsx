@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-// import { mockTutors as initialMockTutors } from "./data/mockTutors";
 import { mockTutors } from "./data/mockTutors";
 import { FilterPanel } from "./components/FilterPanel";
 import { TutorCard } from "./components/TutorCard";
@@ -89,7 +88,8 @@ function makeSlotsFromDays(days, countPerDay = 1) {
 
 export default function App() {
   // const [tutors, setTutors] = useState(initialMockTutors);
-  const [tutors, setTutors] = useState(mockAds);
+  // const [tutors, setTutors] = useState(mockAds);
+  const [tutors, setTutors] = useState([]);
 
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [selectedSuburbs, setSelectedSuburbs] = useState([]);
@@ -100,29 +100,36 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+useEffect(() => {
+  async function fetchAds() {
+    try {
+      const res = await fetch("/api/ads");
+      const data = await res.json();
 
-    async function fetchAds() {
-      try {
-        const res = await fetch("/api/ads");
-        const data = await res.json();
+      // Map DB ads → TutorCard shape
+      const mapped = data.map((ad) => ({
+        id: ad.ad_id,
+        adId: ad.ad_id,                 // IMPORTANT
+        name: ad.Tutor?.name ?? "Tutor",
+        suburb: ad.Location?.location_name ?? "Unknown",
+        bio: ad.ad_description,
+        experience: ad.years_experience,
+        hourlyRate: ad.hourly_rate,
+        image: ad.img_url || "https://placehold.co/600x400",
+        instruments: [ad.Instrument?.instrument_name].filter(Boolean),
+        rating: 5,
+        totalReviews: 0,
+      }));
 
-        if (!cancelled) {
-          setTutors(Array.isArray(data) ? data.map(adToCardModel) : []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch ads", err);
-        if (!cancelled) setTutors([]);
-      }
+      setTutors(mapped);
+    } catch (err) {
+      console.error("Failed to load ads", err);
     }
+  }
 
-    fetchAds();
+  fetchAds();
+}, []);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     async function fetchAds() {
