@@ -4,13 +4,27 @@ import Tutor from "../models/Tutor.js";
 import Location from "../models/Location.js";
 import Instrument from "../models/Instrument.js";
 
-// Get all ads
+// Get all ads (with joined tutor/location/instrument)
 export const getAllAds = async (req, res) => {
   try {
     const ads = await Ad.findAll({
       order: [["ad_id", "DESC"]],
-      include: [Tutor, Location, Instrument],
+      include: [
+        {
+          model: Tutor,
+          attributes: ["tutor_id", "name", "avatar_url"],
+        },
+        {
+          model: Location,
+          attributes: ["location_id", "location_name"],
+        },
+        {
+          model: Instrument,
+          attributes: ["instrument_id", "instrument_name"],
+        },
+      ],
     });
+
     res.json(ads);
   } catch (error) {
     console.error("Error fetching ads:", error);
@@ -22,11 +36,16 @@ export const getAllAds = async (req, res) => {
 export const getAdById = async (req, res) => {
   try {
     const { id } = req.params;
-    const ad = await Ad.findByPk(id);
 
-    if (!ad) {
-      return res.status(404).json({ error: "Ad not found" });
-    }
+    const ad = await Ad.findByPk(id, {
+      include: [
+        { model: Tutor, attributes: ["tutor_id", "name", "avatar_url"] },
+        { model: Location, attributes: ["location_id", "location_name"] },
+        { model: Instrument, attributes: ["instrument_id", "instrument_name"] },
+      ],
+    });
+
+    if (!ad) return res.status(404).json({ error: "Ad not found" });
 
     res.json(ad);
   } catch (error) {

@@ -87,9 +87,6 @@ function makeSlotsFromDays(days, countPerDay = 1) {
 }
 
 export default function App() {
-  // const [tutors, setTutors] = useState(initialMockTutors);
-  // const [tutors, setTutors] = useState(mockAds);
-
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [selectedSuburbs, setSelectedSuburbs] = useState([]);
   const [selectedDays, setSelectedDays] = useState([]);
@@ -112,32 +109,24 @@ export default function App() {
 
         // Map API ad -> TutorCard shape
         const mapped = (Array.isArray(ads) ? ads : []).map((ad) => ({
-          // IMPORTANT: TutorCard expects tutor.id
           id: `ad-${ad.ad_id}`,
-
-          // ContactModal expects tutor.adId
           adId: ad.ad_id,
 
-          // Display fields used by TutorCard / filters
-          name: `Tutor #${ad.tutor_id}`, // MVP: until you join tutor table
-          suburb: "Melbourne CBD", // MVP: until you join locations
+          name: ad.Tutor?.name ?? `Tutor #${ad.tutor_id}`,
+          suburb: ad.Location?.location_name ?? "Unknown location",
           image:
+            ad.Tutor?.avatar_url ||
             ad.img_url ||
             "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600&h=400&fit=crop",
+
           bio: ad.ad_description || "",
-          instruments: ["Piano"], // MVP: until you join instruments
+          instruments: [ad.Instrument?.instrument_name].filter(Boolean),
 
           experience: ad.years_experience ?? 0,
           hourlyRate: Number(ad.hourly_rate ?? 0),
 
-          // Keep your sort UI working
           rating: 5.0,
           totalReviews: 0,
-
-          // Optional: you can show the raw ids if needed later
-          tutor_id: ad.tutor_id,
-          location_id: ad.location_id,
-          instrument_id: ad.instrument_id,
         }));
 
         if (!cancelled) {

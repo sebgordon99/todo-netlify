@@ -1,69 +1,159 @@
 import sequelize from "../config/database.js";
+import Location from "../models/Location.js";
+import Instrument from "../models/Instrument.js";
 import Tutor from "../models/Tutor.js";
 import Ad from "../models/ad.js";
 import Availability from "../models/Availability.js";
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function pickMany(arr, n) {
+  const copy = [...arr];
+  copy.sort(() => Math.random() - 0.5);
+  return copy.slice(0, n);
+}
+
+const TUTOR_NAMES = [
+  "Sarah Mitchell",
+  "James Lee",
+  "Emily Chen",
+  "Liam Thompson",
+  "Olivia Martin",
+  "Noah Williams",
+  "Ava Johnson",
+  "Ethan Brown",
+  "Mia Davis",
+  "Lucas Wilson",
+  "Sophie Anderson",
+  "Jack Taylor",
+];
+
+const LOCATIONS = [
+  "Sydney CBD",
+  "Newtown",
+  "Surry Hills",
+  "Bondi",
+  "Parramatta",
+  "Chatswood",
+  "Manly",
+  "Melbourne CBD",
+  "Fitzroy",
+  "Carlton",
+  "St Kilda",
+  "Brunswick",
+];
+
+const INSTRUMENTS = [
+  "Piano",
+  "Guitar",
+  "Bass Guitar",
+  "Violin",
+  "Drums",
+  "Voice",
+  "Saxophone",
+  "Cello",
+  "Flute",
+  "Clarinet",
+  "Trumpet",
+  "Keyboard",
+];
+
+// Use stable Unsplash image URLs (not random) so demos are consistent.
+// These are “portrait/headshot-ish” photos. You can swap/add as you like.
+const AVATARS = [
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1521119989659-a83eee488004?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=800&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1542206395-9feb3edaa68d?w=800&h=800&fit=crop&crop=faces",
+];
 
 async function seed() {
   try {
     await sequelize.authenticate();
     console.log("✅ DB connected");
 
-    // Clear existing data (DEV ONLY)
+    // DEV ONLY: wipe (order matters for FKs)
     await Availability.destroy({ where: {} });
     await Ad.destroy({ where: {} });
     await Tutor.destroy({ where: {} });
+    await Instrument.destroy({ where: {} });
+    await Location.destroy({ where: {} });
 
-    // ---- Tutors ----
-    const tutors = await Tutor.bulkCreate([
-      {
-        name: "Sarah Mitchell",
-        email: "sarah@example.com",
-        username: "sarahm",
-        password: "password",
-        location_id: 1,
-      },
-      {
-        name: "James Lee",
-        email: "james@example.com",
-        username: "jamesl",
-        password: "password",
-        location_id: 1,
-      },
-      {
-        name: "Emily Chen",
-        email: "emily@example.com",
-        username: "emilyc",
-        password: "password",
-        location_id: 1,
-      },
-    ], { returning: true });
+    // 1) Locations
+    const createdLocations = await Location.bulkCreate(
+      LOCATIONS.map((location_name) => ({ location_name })),
+      { returning: true }
+    );
 
-    // ---- Ads ----
-    const adsData = [];
-    const instruments = [1, 2, 3]; // instrument_ids
-    let years = 3;
+    // 2) Instruments
+    const createdInstruments = await Instrument.bulkCreate(
+      INSTRUMENTS.map((instrument_name) => ({ instrument_name })),
+      { returning: true }
+    );
 
-    for (let i = 0; i < 12; i++) {
-      adsData.push({
-        tutor_id: tutors[i % tutors.length].tutor_id,
-        location_id: 1,
-        instrument_id: instruments[i % instruments.length],
-        ad_description: `Professional music tutor with ${years++} years experience.`,
+    // 3) Tutors
+    // Create ~8 tutors (enough variety, not too many)
+    const tutors = await Tutor.bulkCreate(
+      pickMany(TUTOR_NAMES, 8).map((name, idx) => ({
+        name,
+        avatar_url: AVATARS[idx % AVATARS.length],
+        phone: 400000000 + idx,
+        location_id: pick(createdLocations).location_id,
+        email: `${name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
+        username: `${name.toLowerCase().replace(/\s+/g, "")}${idx}`,
+        password: "password",
+        account_status: "active",
+      })),
+      { returning: true }
+    );
+
+    // 4) Ads (10–12)
+    const adsToCreate = Array.from({ length: 12 }).map((_, i) => {
+      const tutor = pick(tutors);
+      const instrument = pick(createdInstruments);
+      const location = pick(createdLocations);
+
+      const years = 2 + (i % 15);
+      const rate = 45 + i * 5;
+
+      const blurbs = [
+        "Friendly lessons for beginners through advanced.",
+        "Focus on technique, musicality, and confidence.",
+        "Tailored practice plans and fun repertoire.",
+        "Exam prep, improvisation, and songwriting available.",
+        "Patient, structured, and goal-focused teaching style.",
+      ];
+
+      return {
+        tutor_id: tutor.tutor_id,
+        location_id: location.location_id,
+        instrument_id: instrument.instrument_id,
+        ad_description: `${pick(blurbs)} (${instrument.instrument_name})`,
         years_experience: years,
-        hourly_rate: 50 + i * 5,
-        img_url: "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600",
-      });
-    }
+        hourly_rate: rate,
+        // Use tutor avatar as the card image for now (works well visually)
+        img_url: tutor.avatar_url,
+        destroy_at: null,
+      };
+    });
 
-    const ads = await Ad.bulkCreate(adsData, { returning: true });
+    const ads = await Ad.bulkCreate(adsToCreate, { returning: true });
 
-    // ---- Availability ----
+    // 5) Availability (3 slots per ad)
     const availabilities = [];
-
     ads.forEach((ad) => {
       for (let i = 0; i < 3; i++) {
         const start = new Date();
-        start.setDate(start.getDate() + i + 1);
+        start.setDate(start.getDate() + (i + 1));
         start.setHours(18 + i, 0, 0, 0);
 
         const end = new Date(start);
@@ -71,7 +161,7 @@ async function seed() {
 
         availabilities.push({
           ad_id: ad.ad_id,
-          user_id: 1,              // demo user
+          user_id: 1, // demo user
           start_time: start,
           end_time: end,
           is_booked: false,
