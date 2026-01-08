@@ -1,101 +1,150 @@
-# Todo List App
+🎵 Music Tutor Marketplace
+Project Description
 
-A modern React todo list application with Express API backend, Sequelize ORM, and PostgreSQL database, deployed on Netlify.
+The Music Tutor Marketplace is a full-stack web application that allows music tutors to advertise their services and students to browse available tutors.
 
-## Features
+Tutors can register accounts, log in securely, and create, edit, or delete their own tutoring advertisements. Students can browse all ads, search by keyword, and filter tutors by instrument and location.
 
-- ✅ Create, read, update, and delete todos
-- ✅ Mark todos as complete/incomplete
-- ✅ Add descriptions to todos
-- ✅ Modern React UI with responsive design
-- ✅ RESTful API with Express
-- ✅ PostgreSQL database with Sequelize ORM
-- ✅ Serverless deployment on Netlify
+The project demonstrates core full-stack development concepts including:
 
-## Tech Stack
+Frontend state management with React
+RESTful API design
+Database modelling with Sequelize and PostgreSQL
+Authentication and authorization using HTTP-only cookies
+Serverless backend deployment using Netlify Functions
 
-- **Frontend**: React 18 with Vite
-- **Backend**: Express.js
-- **Database**: PostgreSQL with Sequelize ORM
-- **Deployment**: Netlify Functions
 
-## Setup
+✨ Key Features
 
-### Prerequisites
+Public (Students)
 
-- Node.js (v18 or higher)
-- PostgreSQL database (local or hosted)
-- Netlify account (for deployment)
+View all tutor advertisements
+Filter tutors by instrument and suburb
+Search by name, instrument, or description
+View tutor availability (read-only)
+Responsive and accessible UI
 
-### Installation
+Tutors (Authenticated)
 
-1. Install dependencies:
-```bash
-npm install
-```
+Create a tutor account
+Login and logout securely
+Create new tutor advertisements
+Edit and delete only their own advertisements
+Dashboard for managing ads
 
-2. Set up environment variables:
-   - Create a `.env` file or set environment variables in Netlify
-   - Add `DATABASE_URL` or `POSTGRES_URL` with your PostgreSQL connection string
-   - Example: `DATABASE_URL=postgresql://user:password@host:port/database`
 
-3. Run development server:
-```bash
-npm run dev
-```
+🛠️ Technologies Used
 
-4. Run Netlify functions locally:
-```bash
-npm run netlify:dev
-```
+Frontend
 
-## API Endpoints
+React (Vite)
+Tailwind CSS
+Radix UI components
+Lucide Icons
 
-- `GET /api/todos` - Get all todos
-- `GET /api/todos/:id` - Get a single todo
-- `POST /api/todos` - Create a new todo
-- `PUT /api/todos/:id` - Update a todo
-- `DELETE /api/todos/:id` - Delete a todo
+Backend
 
-## Deployment
+Node.js
+Express
+Sequelize ORM
+PostgreSQL
 
-1. Build the project:
-```bash
-npm run build
-```
+Netlify Functions (serverless)
 
-2. Deploy to Netlify:
-   - Connect your repository to Netlify
-   - Set environment variables in Netlify dashboard
-   - Netlify will automatically build and deploy
+Authentication & Security
+HTTP-only cookies
+Password hashing with bcrypt
+Ownership-based authorization
+CORS configuration
+Rate limiting and security headers
 
-## Project Structure
 
-```
-todo-netlify/
-├── src/                    # React frontend
-│   ├── components/         # React components
-│   ├── App.jsx            # Main app component
-│   └── main.jsx           # Entry point
+📁 Project Structure
+├── src/
+│   ├── components/        # React components
+│   ├── utils/             # Helper utilities
+│   ├── App.jsx            # Main application entry
+│
 ├── netlify/
-│   └── functions/         # Netlify serverless functions
-│       ├── api.js         # Express app handler
-│       ├── config/        # Database configuration
-│       ├── controllers/   # API controllers
+│   └── functions/
+│       ├── controllers/   # API logic
+│       ├── middleware/    # Auth & security middleware
 │       ├── models/        # Sequelize models
-│       └── routes/        # Express routes
-└── dist/                  # Build output (generated)
-```
+│       ├── routes/        # Express routes
+│       └── api.mjs        # Netlify serverless entry
+│
+├── netlify.toml           # Netlify configuration
+├── package.json
+└── README.md
 
-## Environment Variables
+⚙️ Installation Instructions
+Prerequisites
 
-- `NETLIFY_DATABASE_URL` or `POSTGRES_URL`: PostgreSQL connection string
-- `NODE_ENV`: Environment (development/production)
+Ensure the following are installed on your system:
+
+Node.js (v18 or higher recommended)
+
+npm
+
+PostgreSQL
+
+Netlify CLI
+
+Install Netlify CLI if not already installed:
+npm install -g netlify-cli
+
+Step 1: Install Dependencies
+
+From the project root directory, run:
+npm install
 
 
-Update model process:
-- Add model following todo structure
-- update model index
-- Add controller following todo structure
-- Add route following todo structure
-- update route index
+Step 2: Environment Setup
+
+Ensure your PostgreSQL database is running and that environment variables (database connection details) are correctly configured for Sequelize.
+
+The database will automatically initialize and sync on first run.
+
+▶️ Running the Application
+Start the App (Frontend + Backend)
+npm run dev
+
+
+This command runs:
+
+Frontend (Vite) on:
+👉 http://localhost:5173
+
+Backend (Netlify Functions) on:
+👉 http://localhost:8888/api
+
+All API requests from the frontend are proxied through Netlify to the backend.
+
+
+🔐 Authentication Notes
+
+Tutors must be logged in to create, edit, or delete advertisements
+Authentication uses HTTP-only cookies
+Tutor ownership is enforced server-side
+Users cannot modify ads they do not own
+
+
+🚧 Known Limitations / Future Improvements
+
+Editable availability slots
+Tutor profile editing
+Student reviews and ratings
+Image uploads
+Pagination for large data sets
+
+
+👤 Author
+
+Sebastian Gordon
+
+This project was developed to demonstrate:
+
+Full-stack application architecture
+Secure authentication and authorization
+Database-driven CRUD functionality
+Clean, maintainable React UI design
