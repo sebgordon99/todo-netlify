@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "./components/ui/select";
 import { Music, Search, LogIn } from "lucide-react";
+import { pickStableAvatar } from "./utils/avatar";
 
 /** Small helper: fetch JSON and throw useful errors */
 async function fetchJson(url, options) {
@@ -106,8 +107,8 @@ export default function App() {
           name: ad.Tutor?.name ?? `Tutor #${ad.tutor_id}`,
           suburb: ad.Location?.location_name ?? "Unknown location",
           image:
-            ad.Tutor?.avatar_url ||
             ad.img_url ||
+            ad.Tutor?.avatar_url ||
             "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600&h=400&fit=crop",
           bio: ad.ad_description || "",
 
@@ -159,6 +160,11 @@ export default function App() {
       const chosenInstrumentName = (newTutor.instruments || [])[0] || "Piano";
 
       const chosenLocationName = newTutor.suburb || "Sydney CBD";
+
+      const stableAvatar =
+        newTutor.image && newTutor.image.trim()
+          ? newTutor.image.trim()
+          : pickStableAvatar(newTutor.name || newTutor.email || Date.now());
 
       // 1) Pick a tutor_id that actually exists in DB
       const tutorsFromDb = await fetchJson("/api/tutors");
@@ -221,7 +227,7 @@ export default function App() {
           ad_description: newTutor.bio || "New tutor ad",
           years_experience: Number(newTutor.experience || 0),
           hourly_rate: Number(newTutor.hourlyRate || 0),
-          img_url: newTutor.image || null,
+          img_url: stableAvatar,
           destroy_at: null,
         }),
       });
@@ -259,6 +265,7 @@ export default function App() {
 
         image:
           createdAd.img_url ||
+          stableAvatar ||
           "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600&h=400&fit=crop",
 
         bio: createdAd.ad_description || "",
