@@ -1,33 +1,67 @@
 import bcrypt from "bcryptjs";
 import Tutor from "../models/Tutor.js";
+import { serialize } from "cookie";
 
 // Very simple cookie session (MVP)
 // If you already have a session system, plug into that instead.
 function setAuthCookie(res, tutor) {
-  // For MVP: store tutor_id in a cookie
-  // In production you’d use signed cookies / JWT / session store.
-  res.cookie("tutor_id", String(tutor.tutor_id), {
+  const cookie = serialize("tutor_id", String(tutor.tutor_id), {
     httpOnly: true,
     sameSite: "lax",
-    secure: false, // set true on HTTPS deployments
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    secure: false, // set true on real HTTPS
+    path: "/",     // ✅ important
+    maxAge: 7 * 24 * 60 * 60, // seconds
   });
+
+  res.setHeader("Set-Cookie", cookie);
+}
+
+/** Create a safe username base from name/email */
+function slugifyUsername(input = "") {
+  return String(input)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "") // remove spaces/symbols
+    .slice(0, 20);
+}
+
+/** Generate a username that is unique in tutors.username */
+async function generateUniqueUsername({ name, email }) {
+  const base =
+    slugifyUsername(name) ||
+    slugifyUsername(String(email || "").split("@")[0]) ||
+    "tutor";
+
+  let candidate = base;
+  let n = 0;
+
+  while (true) {
+    const existing = await Tutor.findOne({ where: { username: candidate } });
+    if (!existing) return candidate;
+
+    n += 1;
+    candidate = `${base}${n}`;
+  }
 }
 
 export const register = async (req, res) => {
   try {
-    const { name, email, username, password } = req.body;
+    // ✅ username removed from required inputs
+    const { name, email, password } = req.body;
 
-    if (!name || !email || !username || !password) {
-      return res.status(400).json({ error: "name, email, username, password are required" });
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ error: "name, email, password are required" });
     }
 
-    // Check uniqueness
+    // Check uniqueness (email only — username will be generated)
     const existingEmail = await Tutor.findOne({ where: { email } });
-    if (existingEmail) return res.status(409).json({ error: "Email already in use" });
+    if (existingEmail)
+      return res.status(409).json({ error: "Email already in use" });
 
-    const existingUsername = await Tutor.findOne({ where: { username } });
-    if (existingUsername) return res.status(409).json({ error: "Username already in use" });
+    // ✅ generate unique username server-side
+    const username = await generateUniqueUsername({ name, email });
 
     const hashed = await bcrypt.hash(password, 10);
 
@@ -61,7 +95,9 @@ export const login = async (req, res) => {
     const { emailOrUsername, password } = req.body;
 
     if (!emailOrUsername || !password) {
-      return res.status(400).json({ error: "emailOrUsername and password are required" });
+      return res
+        .status(400)
+        .json({ error: "emailOrUsername and password are required" });
     }
 
     const tutor = await Tutor.findOne({
@@ -110,6 +146,14 @@ export const me = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  res.clearCookie("tutor_id");
+  const expired = serialize("tutor_id", "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+    path: "/",
+    expires: new Date(0),
+  });
+
+  res.setHeader("Set-Cookie", expired);
   return res.json({ ok: true });
 };

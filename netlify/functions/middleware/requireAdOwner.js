@@ -2,22 +2,22 @@ import Ad from "../models/ad.js";
 
 export async function requireAdOwner(req, res, next) {
   try {
-    const adId = Number(req.params.id);
-    if (!Number.isFinite(adId)) {
-      return res.status(400).json({ error: "Invalid ad id" });
-    }
+    const tutorId = req.tutorId; // set by requireAuth
+    if (!tutorId) return res.status(401).json({ error: "Not logged in" });
 
+    const adId = Number(req.params.id);
     const ad = await Ad.findByPk(adId);
+
     if (!ad) return res.status(404).json({ error: "Ad not found" });
 
-    if (Number(ad.tutor_id) !== Number(req.user.tutor_id)) {
-      return res.status(403).json({ error: "Not allowed" });
+    if (Number(ad.tutor_id) !== Number(tutorId)) {
+      return res.status(403).json({ error: "Forbidden" });
     }
 
-    req.ad = ad; // optional
+    req.ad = ad;
     return next();
   } catch (err) {
-    console.error("requireAdOwner failed:", err);
-    return res.status(500).json({ error: "Server error" });
+    console.error("requireAdOwner error:", err);
+    return res.status(500).json({ error: "Owner check failed" });
   }
 }

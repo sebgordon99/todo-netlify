@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "netlify": "netlify dev",
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "dev": "netlify dev",
     "functions": "netlify functions:serve"
   },
   "dependencies": {

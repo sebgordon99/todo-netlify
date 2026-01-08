@@ -35,9 +35,11 @@ app.use(securityHeadersMiddleware);
 app.use(express.json());
 app.use(rateLimiterMiddleware);
 
+app.use(cookieParser());
+
 // Routes
 app.use("/api", routes);
-app.use(cookieParser());
+
 
 // Export Netlify handler
 export const handler = serverless(app);

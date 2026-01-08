@@ -192,8 +192,15 @@ export default function App() {
   const handleCreateAdvertisement = async (newTutor) => {
     try {
       if (!newTutor) throw new Error("Missing form data");
-      const tutor_id = currentTutor?.tutor_id;
-      if (!tutor_id) throw new Error("Not logged in as a tutor");
+
+      // ✅ Always verify session (source of truth)
+      const me = await fetchJson("/api/auth/me"); // uses credentials: "include"
+      if (!me?.tutor_id) throw new Error("Not logged in as a tutor");
+
+      setCurrentTutor(me);
+      setIsLoggedIn(true);
+
+      const tutor_id = me.tutor_id;
 
       const chosenInstrumentName = (newTutor.instruments || [])[0] || "Piano";
       const chosenLocationName = newTutor.suburb || "Sydney CBD";
@@ -201,42 +208,42 @@ export default function App() {
       const stableAvatar =
         newTutor.image && newTutor.image.trim()
           ? newTutor.image.trim()
-          : pickStableAvatar(newTutor.name || currentTutor?.email || String(tutor_id));
+          : pickStableAvatar(
+              newTutor.name || newTutor.email || String(tutor_id)
+            );
 
-      // Resolve instrument_id (fallback to first instrument)
+      // Resolve instrument_id
       let instrument_id = 1;
-      try {
-        const instruments = await fetchJson("/api/instruments");
-        if (Array.isArray(instruments) && instruments.length > 0) {
-          const match = instruments.find(
-            (i) =>
-              String(i.instrument_name || "").toLowerCase().trim() ===
-              chosenInstrumentName.toLowerCase().trim()
-          );
-          instrument_id = match?.instrument_id ?? instruments[0].instrument_id;
-        }
-      } catch {}
+      const instruments = await fetchJson("/api/instruments");
+      if (Array.isArray(instruments) && instruments.length > 0) {
+        const match = instruments.find(
+          (i) =>
+            String(i.instrument_name || "")
+              .toLowerCase()
+              .trim() === chosenInstrumentName.toLowerCase().trim()
+        );
+        instrument_id = match?.instrument_id ?? instruments[0].instrument_id;
+      }
 
-      // Resolve location_id (fallback to first location)
+      // Resolve location_id
       let location_id = 1;
-      try {
-        const locations = await fetchJson("/api/locations");
-        if (Array.isArray(locations) && locations.length > 0) {
-          const match = locations.find(
-            (l) =>
-              String(l.location_name || "").toLowerCase().trim() ===
-              chosenLocationName.toLowerCase().trim()
-          );
-          location_id = match?.location_id ?? locations[0].location_id;
-        }
-      } catch {}
+      const locations = await fetchJson("/api/locations");
+      if (Array.isArray(locations) && locations.length > 0) {
+        const match = locations.find(
+          (l) =>
+            String(l.location_name || "")
+              .toLowerCase()
+              .trim() === chosenLocationName.toLowerCase().trim()
+        );
+        location_id = match?.location_id ?? locations[0].location_id;
+      }
 
       // Create the Ad
       const createdAd = await fetchJson("/api/ads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tutor_id,
+          tutor_id, // ✅ from /me
           location_id,
           instrument_id,
           ad_description: newTutor.bio || "New tutor ad",
@@ -247,7 +254,7 @@ export default function App() {
         }),
       });
 
-      // Create availability rows (optional)
+      // Optional availability
       const slots = makeSlotsFromDays(newTutor.availability || [], 1);
       if (slots.length > 0) {
         await Promise.all(
@@ -256,7 +263,7 @@ export default function App() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                user_id: 1, // demo user
+                user_id: 1,
                 ad_id: createdAd.ad_id,
                 start_time: s.start_time,
                 end_time: s.end_time,
@@ -268,29 +275,25 @@ export default function App() {
         );
       }
 
-      // Add to UI immediately
-      const mappedForUI = {
-        id: `ad-${createdAd.ad_id}`,
-        adId: createdAd.ad_id,
-        tutor_id,
-
-        name: currentTutor?.name || newTutor.name || `Tutor #${tutor_id}`,
-        suburb: chosenLocationName,
-        image:
-          createdAd.img_url ||
-          stableAvatar ||
-          "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600&h=400&fit=crop",
-        bio: createdAd.ad_description || "",
-        instruments: newTutor.instruments?.length
-          ? newTutor.instruments
-          : [chosenInstrumentName],
-        experience: createdAd.years_experience ?? 0,
-        hourlyRate: Number(createdAd.hourly_rate ?? 0),
-        rating: 5.0,
-        totalReviews: 0,
-      };
-
-      setTutors((prev) => [mappedForUI, ...prev]);
+      // Update UI
+      setTutors((prev) => [
+        {
+          id: `ad-${createdAd.ad_id}`,
+          adId: createdAd.ad_id,
+          name: me.name || newTutor.name || `Tutor #${tutor_id}`,
+          suburb: chosenLocationName,
+          image: createdAd.img_url || stableAvatar,
+          bio: createdAd.ad_description || "",
+          instruments: newTutor.instruments?.length
+            ? newTutor.instruments
+            : [chosenInstrumentName],
+          experience: createdAd.years_experience ?? 0,
+          hourlyRate: Number(createdAd.hourly_rate ?? 0),
+          rating: 5.0,
+          totalReviews: 0,
+        },
+        ...prev,
+      ]);
     } catch (err) {
       console.error("Create advertisement failed:", err);
       alert(err?.message || "Failed to create advertisement");
@@ -319,8 +322,12 @@ export default function App() {
     return tutors.filter((tutor) => {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchesName = String(tutor.name || "").toLowerCase().includes(query);
-        const matchesBio = String(tutor.bio || "").toLowerCase().includes(query);
+        const matchesName = String(tutor.name || "")
+          .toLowerCase()
+          .includes(query);
+        const matchesBio = String(tutor.bio || "")
+          .toLowerCase()
+          .includes(query);
         const matchesInstrument = (tutor.instruments || []).some((inst) =>
           String(inst).toLowerCase().includes(query)
         );
@@ -349,11 +356,17 @@ export default function App() {
       case "rating":
         return tutorsCopy.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
       case "price-low":
-        return tutorsCopy.sort((a, b) => (a.hourlyRate ?? 0) - (b.hourlyRate ?? 0));
+        return tutorsCopy.sort(
+          (a, b) => (a.hourlyRate ?? 0) - (b.hourlyRate ?? 0)
+        );
       case "price-high":
-        return tutorsCopy.sort((a, b) => (b.hourlyRate ?? 0) - (a.hourlyRate ?? 0));
+        return tutorsCopy.sort(
+          (a, b) => (b.hourlyRate ?? 0) - (a.hourlyRate ?? 0)
+        );
       case "experience":
-        return tutorsCopy.sort((a, b) => (b.experience ?? 0) - (a.experience ?? 0));
+        return tutorsCopy.sort(
+          (a, b) => (b.experience ?? 0) - (a.experience ?? 0)
+        );
       default:
         return tutorsCopy;
     }
@@ -387,7 +400,10 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setShowRegisterModal(true)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowRegisterModal(true)}
+              >
                 <UserPlus className="w-5 h-5 mr-2" />
                 Create Tutor Account
               </Button>
@@ -439,8 +455,12 @@ export default function App() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="rating">Highest Rated</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="price-low">
+                      Price: Low to High
+                    </SelectItem>
+                    <SelectItem value="price-high">
+                      Price: High to Low
+                    </SelectItem>
                     <SelectItem value="experience">Most Experienced</SelectItem>
                   </SelectContent>
                 </Select>
@@ -450,10 +470,13 @@ export default function App() {
             {/* Count + Loading */}
             <div className="mb-6 flex items-center justify-between">
               <h2>
-                {sortedTutors.length} {sortedTutors.length === 1 ? "tutor" : "tutors"} found
+                {sortedTutors.length}{" "}
+                {sortedTutors.length === 1 ? "tutor" : "tutors"} found
               </h2>
               {loadingAds ? (
-                <span className="text-sm text-muted-foreground">Loading ads…</span>
+                <span className="text-sm text-muted-foreground">
+                  Loading ads…
+                </span>
               ) : null}
             </div>
 
@@ -470,7 +493,11 @@ export default function App() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {sortedTutors.map((tutor) => (
-                  <TutorCard key={tutor.id} tutor={tutor} onContact={setSelectedTutor} />
+                  <TutorCard
+                    key={tutor.id}
+                    tutor={tutor}
+                    onContact={setSelectedTutor}
+                  />
                 ))}
               </div>
             )}
@@ -480,12 +507,18 @@ export default function App() {
 
       {/* Contact Modal */}
       {selectedTutor && (
-        <ContactModal tutor={selectedTutor} onClose={() => setSelectedTutor(null)} />
+        <ContactModal
+          tutor={selectedTutor}
+          onClose={() => setSelectedTutor(null)}
+        />
       )}
 
       {/* Login Modal */}
       {showLoginModal && (
-        <LoginModal onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLogin={handleLogin}
+        />
       )}
 
       {/* Register Modal */}

@@ -34,7 +34,7 @@ const Tutor = sequelize.define(
     tableName: "tutors",
     underscored: true,
     timestamps: false,
-    paranoid: false, // ✅ for demo simplicity
+    paranoid: false,
   }
 );
 

@@ -25,7 +25,7 @@ export function LoginModal({ onClose, onLogin }) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ✅ REQUIRED so cookie is saved
+        credentials: "include", // ✅ cookie saved
         body: JSON.stringify({
           emailOrUsername,
           password,
@@ -39,8 +39,7 @@ export function LoginModal({ onClose, onLogin }) {
         return;
       }
 
-      // ✅ cookie is now set by the server
-      onLogin?.(data); // pass tutor info back to App
+      onLogin?.(data);
       onClose?.();
     } catch (err) {
       console.error(err);
@@ -93,7 +92,12 @@ export function LoginModal({ onClose, onLogin }) {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

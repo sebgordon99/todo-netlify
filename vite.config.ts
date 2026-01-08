@@ -54,7 +54,7 @@ export default defineConfig({
     outDir: "build",
   },
   server: {
-    port: 3000,
-    open: false,
+    port: 5173,
+    strictPort: true,
   },
 });

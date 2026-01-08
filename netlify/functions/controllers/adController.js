@@ -57,6 +57,10 @@ export const getAdById = async (req, res) => {
 // Create a new ad
 export const createAd = async (req, res) => {
   try {
+    // ✅ requireAuth already verified + attached tutorId
+    const tutorId = req.tutorId;
+    if (!tutorId) return res.status(401).json({ error: "Not logged in" });
+
     const {
       location_id,
       instrument_id,
@@ -67,30 +71,21 @@ export const createAd = async (req, res) => {
       destroy_at,
     } = req.body;
 
-    const tutor_id = req.user?.tutor_id;
-    if (!tutor_id) return res.status(401).json({ error: "Not logged in" });
-
-    if (!instrument_id || !ad_description) {
-      return res.status(400).json({
-        error: "instrument_id and ad_description are required",
-      });
-    }
-
     const ad = await Ad.create({
-      tutor_id,
-      location_id: location_id || null,
+      tutor_id: tutorId,
+      location_id,
       instrument_id,
       ad_description,
-      years_experience: years_experience || 0,
-      hourly_rate: hourly_rate || 0,
-      img_url: img_url || null,
-      destroy_at: destroy_at || null,
+      years_experience,
+      hourly_rate,
+      img_url,
+      destroy_at: destroy_at ?? null,
     });
 
     return res.status(201).json(ad);
-  } catch (error) {
-    console.error("Error creating ad:", error);
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("Error creating ad:", err);
+    return res.status(500).json({ error: err.message });
   }
 };
 

@@ -1,24 +1,34 @@
-import jwt from "jsonwebtoken";
-import cookie from "cookie";
+import Tutor from "../models/Tutor.js";
 
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      return res.status(500).json({ error: "JWT_SECRET is not set" });
-    }
+    // cookie-parser populates req.cookies
+    const tutorIdRaw = req.cookies?.tutor_id;
 
-    const cookies = cookie.parse(req.headers.cookie || "");
-    const token = cookies.auth_token;
-
-    if (!token) {
+    if (!tutorIdRaw) {
       return res.status(401).json({ error: "Not logged in" });
     }
 
-    const payload = jwt.verify(token, secret);
-    req.user = payload; // { tutor_id, email, name }
+    const tutorId = Number(tutorIdRaw);
+    if (!Number.isInteger(tutorId)) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+
+    const tutor = await Tutor.findByPk(tutorId, {
+      attributes: ["tutor_id", "name", "email", "username"],
+    });
+
+    if (!tutor) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+
+    // ✅ attach for later middleware/controllers
+    req.tutor = tutor;
+    req.tutorId = tutor.tutor_id;
+
     return next();
   } catch (err) {
-    return res.status(401).json({ error: "Invalid or expired session" });
+    console.error("requireAuth error:", err);
+    return res.status(500).json({ error: "Auth check failed" });
   }
 }

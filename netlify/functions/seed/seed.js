@@ -5,6 +5,7 @@ import Tutor from "../models/Tutor.js";
 import Ad from "../models/ad.js";
 import Availability from "../models/Availability.js";
 import User from "../models/User.js"; // ✅ add this (you already have models/User.js)
+import bcrypt from "bcryptjs";
 
 function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -115,20 +116,22 @@ async function seed() {
       location_id: pick(createdLocations).location_id,
     });
 
+    const hashedPassword = await bcrypt.hash("password", 10);
+
     // 4) Tutors (8)
     const tutors = await Tutor.bulkCreate(
-      pickMany(TUTOR_NAMES, 8).map((name, idx) => ({
-        name,
-        avatar_url: AVATARS[idx % AVATARS.length],
-        phone: String(400000000 + idx),
-        location_id: pick(createdLocations).location_id,
-        email: `${name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-        username: `${name.toLowerCase().replace(/\s+/g, "")}${idx}`,
-        password: "password",
-        account_status: "active",
-      })),
-      { returning: true }
-    );
+  pickMany(TUTOR_NAMES, 8).map((name, idx) => ({
+    name,
+    avatar_url: AVATARS[idx % AVATARS.length],
+    phone: 400000000 + idx,
+    location_id: pick(createdLocations).location_id,
+    email: `${name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
+    username: `${name.toLowerCase().replace(/\s+/g, "")}${idx}`,
+    password: hashedPassword, // ✅ hashed now
+    account_status: "active",
+  })),
+  { returning: true }
+);
 
     // 5) Ads (12)
     const blurbs = [
