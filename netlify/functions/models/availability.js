@@ -9,19 +9,42 @@ const Availability = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    start_time: DataTypes.DATE,
-    end_time: DataTypes.DATE,
-    capacity: DataTypes.INTEGER,
-    is_active: {
+
+    // FK fields (match your DBML + controllers)
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true, // null means "open slot not booked by anyone yet"
+    },
+    ad_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+
+    start_time: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    end_time: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+
+    is_booked: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      allowNull: false,
+      defaultValue: false,
+    },
+
+    user_capacity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
     },
   },
   {
     tableName: "availabilities",
+    timestamps: false, // IMPORTANT: keep simple + match your earlier schema
     underscored: true,
-    timestamps: true,
-    paranoid: true,
   }
 );
 

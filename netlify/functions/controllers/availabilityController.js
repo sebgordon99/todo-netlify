@@ -103,41 +103,29 @@ export const deleteAvailability = async (req, res) => {
 //book an availability
 export const bookAvailability = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { user_id } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({ error: "user_id is required to book" });
+    const slotId = Number(req.params.id);
+    if (!Number.isFinite(slotId)) {
+      return res.status(400).json({ error: "Invalid availability id" });
     }
 
-    const slot = await Availability.findByPk(id);
-    if (!slot) {
-      return res.status(404).json({ error: "Availability not found" });
-    }
+    const { user_id } = req.body || {};
+    // for MVP demo, allow a default user_id
+    const bookingUserId = user_id ?? 1;
 
-    // Already booked?
+    const slot = await Availability.findByPk(slotId);
+    if (!slot) return res.status(404).json({ error: "Slot not found" });
+
     if (slot.is_booked) {
-      return res.status(409).json({ error: "This time is already booked" });
-    }
-
-    // Capacity guard (optional)
-    if (typeof slot.user_capacity === "number" && slot.user_capacity <= 0) {
-      return res.status(409).json({ error: "No capacity left for this slot" });
+      return res.status(400).json({ error: "Slot already booked" });
     }
 
     slot.is_booked = true;
-    slot.user_id = user_id;
-
-    // Optional: decrement capacity when booking
-    // If you want 1 slot = 1 booking, keep this:
-    if (typeof slot.user_capacity === "number") {
-      slot.user_capacity = Math.max(0, slot.user_capacity - 1);
-    }
+    slot.user_id = bookingUserId;
 
     await slot.save();
     return res.json(slot);
   } catch (error) {
-    console.error("Error booking availability:", error);
+    console.error("Error booking slot:", error);
     return res.status(500).json({ error: error.message });
   }
 };

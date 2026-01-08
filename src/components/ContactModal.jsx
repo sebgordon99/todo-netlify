@@ -44,10 +44,28 @@ export function ContactModal({ tutor, onClose }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    const slotsForAd = getSlotsForAd(tutor?.adId);
-    setSlots(slotsForAd);
-    setLoading(false);
+    let cancelled = false;
+
+    async function fetchAvailability() {
+      if (!tutor?.adId) return;
+
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/ads/${tutor.adId}/availability`);
+        const data = await res.json();
+        if (!cancelled) setSlots(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("Failed to fetch availability", e);
+        if (!cancelled) setSlots([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchAvailability();
+    return () => {
+      cancelled = true;
+    };
   }, [tutor?.adId]);
 
   const handleSubmit = (e) => {
@@ -109,9 +127,36 @@ export function ContactModal({ tutor, onClose }) {
                     <Button
                       type="button"
                       className="mt-2"
-                      onClick={() => {
-                        const updated = bookSlot(tutor.adId, s.availability_id);
-                        setSlots(updated);
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(
+                            `/api/availability/${s.availability_id}/book`,
+                            {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ user_id: 1 }), // demo user
+                            }
+                          );
+
+                          const payload = await res.json().catch(() => ({}));
+
+                          if (!res.ok) {
+                            alert(payload.error || "Failed to book");
+                            return;
+                          }
+
+                          // ✅ update UI immediately
+                          setSlots((prev) =>
+                            prev.map((x) =>
+                              x.availability_id === payload.availability_id
+                                ? payload
+                                : x
+                            )
+                          );
+                        } catch (err) {
+                          console.error(err);
+                          alert("Failed to book (network/server error)");
+                        }
                       }}
                     >
                       Book this time
