@@ -13,16 +13,42 @@ import { Label } from "./ui/label";
 import { Mail, Lock } from "lucide-react";
 
 export function LoginModal({ onClose, onLogin }) {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // Simple validation - in real app would authenticate with backend
-    if (email && password) {
-      onLogin();
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // ✅ REQUIRED so cookie is saved
+        body: JSON.stringify({
+          emailOrUsername,
+          password,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || "Login failed");
+        return;
+      }
+
+      // ✅ cookie is now set by the server
+      onLogin?.(data); // pass tutor info back to App
+      onClose?.();
+    } catch (err) {
+      console.error(err);
+      alert("Login failed");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -30,22 +56,20 @@ export function LoginModal({ onClose, onLogin }) {
         <DialogHeader>
           <DialogTitle>Tutor Login</DialogTitle>
           <DialogDescription>
-            Sign in to your tutor account to manage your profile and
-            advertisements.
+            Sign in to your tutor account to manage your advertisements.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="emailOrUsername">Email or Username</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tutor@example.com"
+                id="emailOrUsername"
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
+                placeholder="tutor@example.com or sarahmitchell0"
                 className="pl-10"
                 required
               />
@@ -55,7 +79,7 @@ export function LoginModal({ onClose, onLogin }) {
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 id="password"
                 type="password"
@@ -69,15 +93,17 @@ export function LoginModal({ onClose, onLogin }) {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit">Sign In</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
           </DialogFooter>
         </form>
 
         <div className="text-center text-sm text-muted-foreground">
-          Demo: Use any email and password to login
+          Use an existing tutor’s email/username + password
         </div>
       </DialogContent>
     </Dialog>

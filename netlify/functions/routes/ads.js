@@ -8,6 +8,9 @@ import {
   getAvailabilityForAd
 } from "../controllers/adController.js";
 
+import { requireAuth } from "../middleware/requireAuth.js";
+import { requireAdOwner } from "../middleware/requireAdOwner.js";
+
 const router = express.Router();
 
 // Get all ads
@@ -20,12 +23,12 @@ router.get("/:id/availability", getAvailabilityForAd);
 router.get("/:id", getAdById);
 
 // Create a new ad
-router.post("/", createAd);
+router.post("/", requireAuth, createAd);
 
 // Update an ad by ID
-router.put("/:id", updateAd);
+router.put("/:id", requireAuth, requireAdOwner, updateAd);
 
 // Delete an ad by ID
-router.delete("/:id", deleteAd);
+router.delete("/:id", requireAuth, requireAdOwner, deleteAd);
 
 export default router;

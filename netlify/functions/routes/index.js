@@ -5,9 +5,11 @@ import locations from "./locations.js";
 import instruments from "./instruments.js";
 import users from "./users.js";
 import tutors from "./tutors.js";
+import auth from "./auth.js";
 
 const router = Router();
 
+router.use("/auth", auth);
 router.use("/ads", ads);
 router.use("/availability", availability);
 router.use("/locations", locations);

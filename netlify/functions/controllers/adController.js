@@ -58,7 +58,6 @@ export const getAdById = async (req, res) => {
 export const createAd = async (req, res) => {
   try {
     const {
-      tutor_id,
       location_id,
       instrument_id,
       ad_description,
@@ -68,10 +67,12 @@ export const createAd = async (req, res) => {
       destroy_at,
     } = req.body;
 
-    // Required fields validation
-    if (!tutor_id || !instrument_id || !ad_description) {
+    const tutor_id = req.user?.tutor_id;
+    if (!tutor_id) return res.status(401).json({ error: "Not logged in" });
+
+    if (!instrument_id || !ad_description) {
       return res.status(400).json({
-        error: "tutor_id, instrument_id, and ad_description are required",
+        error: "instrument_id and ad_description are required",
       });
     }
 
@@ -86,12 +87,13 @@ export const createAd = async (req, res) => {
       destroy_at: destroy_at || null,
     });
 
-    res.status(201).json(ad);
+    return res.status(201).json(ad);
   } catch (error) {
     console.error("Error creating ad:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
+
 
 // Update an existing ad
 export const updateAd = async (req, res) => {

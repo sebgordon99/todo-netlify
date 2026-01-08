@@ -11,26 +11,24 @@ const allowedOrigins = [
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (same-origin requests, mobile apps, etc.)
-    if (!origin) {
-      return callback(null, true);
-    }
+  // allow no-origin requests (curl, Postman, same-origin)
+  if (!origin) return callback(null, true);
 
-    // Check if origin is in allowed list
-    const isAllowed =
-      allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
-      origin.includes("localhost");
+  const isAllowed =
+    allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
+    origin.includes("localhost");
 
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(
-        new Error(
-          "Not allowed by CORS - This API can only be accessed from the authorized application"
-        )
-      );
-    }
-  },
+  if (!isAllowed) {
+    return callback(
+      new Error(
+        "Not allowed by CORS - This API can only be accessed from the authorized application"
+      )
+    );
+  }
+
+  // ✅ return the origin string so browsers accept credentials
+  return callback(null, origin);
+},
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
