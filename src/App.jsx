@@ -17,6 +17,7 @@ import {
 } from "./components/ui/select";
 import { Music, Search, LogIn, UserPlus } from "lucide-react";
 import { pickStableAvatar } from "./utils/avatar";
+import { RegisterModal } from "./components/RegisterModal";
 
 /** Small helper: fetch JSON and throw useful errors */
 async function fetchJson(url, options = {}) {
@@ -487,13 +488,13 @@ export default function App() {
         <LoginModal onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
       )}
 
-      {/* Register Modal (add next) */}
-      {/* {showRegisterModal && (
+      {/* Register Modal */}
+      {showRegisterModal && (
         <RegisterModal
           onClose={() => setShowRegisterModal(false)}
           onRegistered={(tutor) => handleLogin(tutor)} // auto-login after register
         />
-      )} */}
+      )}
     </div>
   );
 }

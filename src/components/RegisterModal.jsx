@@ -2,51 +2,45 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, { credentials: "include", ...options });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error || `Request failed: ${res.status}`);
-  return data;
-}
+import { Mail, Lock, User } from "lucide-react";
 
 export function RegisterModal({ onClose, onRegistered }) {
-  const [form, setForm] = useState({
-    name: "",
-    username: "",
-    email: "",
-    password: "",
-  });
-  const [loading, setLoading] = useState(false);
-
-  function setField(key, val) {
-    setForm((p) => ({ ...p, [key]: val }));
-  }
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
+
     try {
-      await fetchJson("/api/auth/register", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        credentials: "include",
+        body: JSON.stringify({ name, email, password }),
       });
 
-      // already auto-logged-in by backend cookie
-      await onRegistered?.();
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || "Registration failed");
+        return;
+      }
+
+      // backend should return tutor info (and ideally set cookie too)
+      onRegistered?.(data);
+      onClose();
     } catch (err) {
-      alert(err.message || "Failed to create account");
-    } finally {
-      setLoading(false);
+      console.error(err);
+      alert("Registration failed");
     }
   }
 
@@ -56,38 +50,63 @@ export function RegisterModal({ onClose, onRegistered }) {
         <DialogHeader>
           <DialogTitle>Create Tutor Account</DialogTitle>
           <DialogDescription>
-            Create a tutor login so you can manage your ads.
+            Create an account to manage ads and bookings.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Name</Label>
-            <Input value={form.name} onChange={(e) => setField("name", e.target.value)} required />
+            <Label htmlFor="name">Name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Jane Tutor"
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Username</Label>
-            <Input value={form.username} onChange={(e) => setField("username", e.target.value)} required />
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tutor@example.com"
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Email</Label>
-            <Input type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} required />
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Password</Label>
-            <Input type="password" value={form.password} onChange={(e) => setField("password", e.target.value)} required />
-          </div>
-
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Account"}
-            </Button>
+            <Button type="submit">Create Account</Button>
           </DialogFooter>
         </form>
       </DialogContent>
