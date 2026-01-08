@@ -1,10 +1,10 @@
 import express from "express";
-import { 
+import {
   getAllInstruments,
   getInstrumentById,
   createInstrument,
   updateInstrument,
-  deleteInstrument
+  deleteInstrument,
 } from "../controllers/instrumentController.js";
 
 const router = express.Router();

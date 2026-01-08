@@ -22,15 +22,10 @@ const badgeVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  },
+  }
 );
 
-function Badge({
-  className,
-  variant,
-  asChild = false,
-  ...props
-}) {
+function Badge({ className, variant, asChild = false, ...props }) {
   const Comp = asChild ? Slot : "span";
 
   return (

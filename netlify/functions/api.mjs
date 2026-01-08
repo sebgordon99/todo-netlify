@@ -11,7 +11,6 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-// Boot DB once (cold start)
 try {
   await initializeDatabase();
 
@@ -21,7 +20,6 @@ try {
   console.log("✅ Database initialized + synced");
 } catch (err) {
   console.error("❌ DB startup failed:", err);
-  // Fail fast so requests don't hit a half-booted server
   throw err;
 }
 
@@ -39,7 +37,6 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api", routes);
-
 
 // Export Netlify handler
 export const handler = serverless(app);

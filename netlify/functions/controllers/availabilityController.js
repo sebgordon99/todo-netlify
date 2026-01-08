@@ -100,7 +100,7 @@ export const deleteAvailability = async (req, res) => {
   }
 };
 
-//book an availability
+// Book an availability
 export const bookAvailability = async (req, res) => {
   try {
     const slotId = Number(req.params.id);
@@ -109,7 +109,6 @@ export const bookAvailability = async (req, res) => {
     }
 
     const { user_id } = req.body || {};
-    // for MVP demo, allow a default user_id
     const bookingUserId = user_id ?? 1;
 
     const slot = await Availability.findByPk(slotId);

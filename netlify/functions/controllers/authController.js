@@ -2,21 +2,20 @@ import bcrypt from "bcryptjs";
 import Tutor from "../models/Tutor.js";
 import { serialize } from "cookie";
 
-// Very simple cookie session (MVP)
-// If you already have a session system, plug into that instead.
+// Very simple cookie session
 function setAuthCookie(res, tutor) {
   const cookie = serialize("tutor_id", String(tutor.tutor_id), {
     httpOnly: true,
     sameSite: "lax",
-    secure: false, // set true on real HTTPS
-    path: "/",     // ✅ important
-    maxAge: 7 * 24 * 60 * 60, // seconds
+    secure: false,
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60,
   });
 
   res.setHeader("Set-Cookie", cookie);
 }
 
-/** Create a safe username base from name/email */
+// Create a safe username base from name/email
 function slugifyUsername(input = "") {
   return String(input)
     .toLowerCase()
@@ -25,7 +24,7 @@ function slugifyUsername(input = "") {
     .slice(0, 20);
 }
 
-/** Generate a username that is unique in tutors.username */
+// Generate a unique username
 async function generateUniqueUsername({ name, email }) {
   const base =
     slugifyUsername(name) ||
@@ -46,7 +45,6 @@ async function generateUniqueUsername({ name, email }) {
 
 export const register = async (req, res) => {
   try {
-    // ✅ username removed from required inputs
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -55,12 +53,12 @@ export const register = async (req, res) => {
         .json({ error: "name, email, password are required" });
     }
 
-    // Check uniqueness (email only — username will be generated)
+    // Check uniqueness (email only)
     const existingEmail = await Tutor.findOne({ where: { email } });
     if (existingEmail)
       return res.status(409).json({ error: "Email already in use" });
 
-    // ✅ generate unique username server-side
+    // generate unique username
     const username = await generateUniqueUsername({ name, email });
 
     const hashed = await bcrypt.hash(password, 10);
@@ -75,7 +73,7 @@ export const register = async (req, res) => {
       phone: null,
     });
 
-    // Auto-login after register (nice for demo)
+    // Auto-login after register
     setAuthCookie(res, tutor);
 
     return res.status(201).json({
@@ -102,7 +100,6 @@ export const login = async (req, res) => {
 
     const tutor = await Tutor.findOne({
       where: {
-        // simple OR lookup
         ...(emailOrUsername.includes("@")
           ? { email: emailOrUsername }
           : { username: emailOrUsername }),

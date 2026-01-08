@@ -35,7 +35,7 @@ export function RegisterModal({ onClose, onRegistered }) {
         return;
       }
 
-      // backend should return tutor info (and ideally set cookie too)
+      // backend should return tutor info
       onRegistered?.(data);
       onClose();
     } catch (err) {

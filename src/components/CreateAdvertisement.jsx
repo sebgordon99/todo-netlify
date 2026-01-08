@@ -50,7 +50,7 @@ const DEFAULT_FORM = {
 export function CreateAdvertisement({
   onSubmit,
   onCancel,
-  mode = "create", // "create" | "edit"
+  mode = "create",
   initialData = null,
 }) {
   const isEdit = mode === "edit";
@@ -62,7 +62,6 @@ export function CreateAdvertisement({
     return {
       ...DEFAULT_FORM,
       ...initialData,
-      // ensure these are correct types
       instruments: Array.isArray(initialData.instruments)
         ? initialData.instruments
         : [],
@@ -145,9 +144,7 @@ export function CreateAdvertisement({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* NOTE: Name isn't actually stored on the ad (it's on Tutor), so in edit mode we show but lock it */}
             <div className="space-y-2">
               <Label htmlFor="name">Your Name *</Label>
               <Input
@@ -156,7 +153,7 @@ export function CreateAdvertisement({
                 onChange={(e) => handleChange("name", e.target.value)}
                 placeholder="e.g., Sarah Mitchell"
                 required
-                disabled={isEdit} // ✅ prevents confusion: editing ad doesn't change tutor name
+                disabled={isEdit} // editing ad doesn't change tutor name
               />
               {isEdit && (
                 <p className="text-xs text-muted-foreground">
@@ -217,7 +214,7 @@ export function CreateAdvertisement({
             />
           </div>
 
-          {/* Image URL (optional but editable) */}
+          {/* Image URL */}
           <div className="space-y-2">
             <Label htmlFor="image">Image URL (optional)</Label>
             <Input

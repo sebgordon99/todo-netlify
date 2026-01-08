@@ -1,12 +1,12 @@
 import express from "express";
-import { 
+import {
   getAllAds,
   getAdById,
   createAd,
   updateAd,
   deleteAd,
   getAvailabilityForAd,
-  getMyAds
+  getMyAds,
 } from "../controllers/adController.js";
 
 import { requireAuth } from "../middleware/requireAuth.js";

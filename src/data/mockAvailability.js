@@ -1,4 +1,3 @@
-// Keyed by adId
 export const mockAvailabilityByAdId = {
   101: [
     {

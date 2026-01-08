@@ -91,7 +91,7 @@ export function ContactModal({ tutor, onClose }) {
           </DialogDescription>
         </DialogHeader>
 
-        {/* ✅ Availability section */}
+        {/* Availability section */}
         <div className="space-y-2 rounded-md border p-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium">Available times</h4>
@@ -122,7 +122,6 @@ export function ContactModal({ tutor, onClose }) {
                       : ""}
                   </div>
 
-                  {/* ✅ Book button belongs INSIDE the map so "s" exists */}
                   {!s.is_booked && (
                     <Button
                       type="button"
@@ -145,7 +144,6 @@ export function ContactModal({ tutor, onClose }) {
                             return;
                           }
 
-                          // ✅ update UI immediately
                           setSlots((prev) =>
                             prev.map((x) =>
                               x.availability_id === payload.availability_id

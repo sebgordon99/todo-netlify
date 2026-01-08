@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { Sequelize } from "sequelize";
 
-
 // Get database connection string from environment variables
 const databaseUrl =
   process.env.POSTGRES_URL || process.env.NETLIFY_DATABASE_URL;

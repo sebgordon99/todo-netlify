@@ -25,7 +25,7 @@ export function LoginModal({ onClose, onLogin }) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ✅ cookie saved
+        credentials: "include", // cookie saved
         body: JSON.stringify({
           emailOrUsername,
           password,

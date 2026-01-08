@@ -4,7 +4,6 @@ import { Button } from "./ui/button";
 import { Music, LogOut, Plus, Pencil, Trash2, Calendar } from "lucide-react";
 import { CreateAdvertisement } from "./CreateAdvertisement";
 
-/** Always send cookies */
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, { credentials: "include", ...options });
   const data = await res.json().catch(() => null);
@@ -16,7 +15,7 @@ async function fetchJson(url, options = {}) {
   return data;
 }
 
-/** For showing availability nicely */
+// For showing availability nicely
 function formatSlot(iso) {
   try {
     return new Date(iso).toLocaleString(undefined, {
@@ -52,12 +51,12 @@ export function TutorDashboard({ onLogout }) {
 
     async function boot() {
       try {
-        // 1) who is logged in?
+        // 1. who is logged in?
         const tutor = await fetchJson("/api/auth/me");
         if (cancelled) return;
         setMe(tutor);
 
-        // 2) load ads for this tutor
+        // 2. load ads for this tutor
         await loadMyAds(tutor.tutor_id, cancelled);
       } catch (e) {
         // If /me fails, user is not logged in
@@ -72,18 +71,15 @@ export function TutorDashboard({ onLogout }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadMyAds(tutor_id, cancelledFlag = false) {
     setLoadingAds(true);
     try {
-      // Preferred: server-filtered endpoint
       let mine = null;
       try {
         mine = await fetchJson("/api/ads/mine");
       } catch {
-        // Fallback: fetch all and filter client-side (only if tutor_id exists on returned ads)
         const all = await fetchJson("/api/ads");
         mine = (Array.isArray(all) ? all : []).filter(
           (a) => String(a.tutor_id) === String(tutor_id)
@@ -147,7 +143,7 @@ export function TutorDashboard({ onLogout }) {
       const instrument_id = await resolveInstrumentId(chosenInstrumentName);
       const location_id = await resolveLocationId(chosenLocationName);
 
-      // Create ad (server uses cookie tutor_id, but sending fields is fine)
+      // Create ad
       await fetchJson("/api/ads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -185,7 +181,7 @@ export function TutorDashboard({ onLogout }) {
       const instrument_id = await resolveInstrumentId(chosenInstrumentName);
       const location_id = await resolveLocationId(chosenLocationName);
 
-      // ✅ edit ONLY the ad fields (availability stays as-is)
+      // edit ONLY the ad fields (availability stays as-is)
       await fetchJson(`/api/ads/${editingAd.ad_id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -234,7 +230,6 @@ export function TutorDashboard({ onLogout }) {
   async function toggleAvailability(ad) {
     const adId = ad.ad_id;
 
-    // close if already open
     if (openAvailabilityFor === adId) {
       setOpenAvailabilityFor(null);
       return;
@@ -242,7 +237,6 @@ export function TutorDashboard({ onLogout }) {
 
     setOpenAvailabilityFor(adId);
 
-    // already cached?
     if (availabilityMap[adId]) return;
 
     setLoadingAvailFor(adId);
@@ -298,7 +292,6 @@ export function TutorDashboard({ onLogout }) {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* ✅ one create button only */}
               {!showCreateForm && !editingAd && (
                 <Button
                   onClick={() => setShowCreateForm(true)}

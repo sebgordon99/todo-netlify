@@ -3,7 +3,6 @@ import { FilterPanel } from "./components/FilterPanel";
 import { TutorCard } from "./components/TutorCard";
 import { ContactModal } from "./components/ContactModal";
 import { LoginModal } from "./components/LoginModal";
-// import { RegisterModal } from "./components/RegisterModal"; // ✅ create later
 import { TutorDashboard } from "./components/TutorDashboard";
 import { Card, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
@@ -19,10 +18,10 @@ import { Music, Search, LogIn, UserPlus } from "lucide-react";
 import { pickStableAvatar } from "./utils/avatar";
 import { RegisterModal } from "./components/RegisterModal";
 
-/** Small helper: fetch JSON and throw useful errors */
+// Small helper: fetch JSON and throw useful errors
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, {
-    credentials: "include", // ✅ ALWAYS send cookies
+    credentials: "include", // ALWAYS send cookies
     ...options,
   });
 
@@ -38,7 +37,7 @@ async function fetchJson(url, options = {}) {
 
 /**
  * Creates bookable slots from the CreateAdvertisement "availability days".
- * We save these into the DB as Availability rows.
+ *  save these into the DB as Availability rows.
  */
 function makeSlotsFromDays(days, countPerDay = 1) {
   const DAY_INDEX = {
@@ -98,7 +97,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentTutor, setCurrentTutor] = useState(null);
 
-  // ✅ Load DB ads on startup
+  // Load DB ads on startup
   useEffect(() => {
     let cancelled = false;
 
@@ -126,7 +125,6 @@ export default function App() {
           rating: 5.0,
           totalReviews: 0,
 
-          // useful later for edit/delete ownership checks
           tutor_id: ad.tutor_id,
         }));
 
@@ -145,7 +143,7 @@ export default function App() {
     };
   }, []);
 
-  // ✅ Restore session from cookie (refresh-safe login)
+  // Restore session from cookie (refresh-safe login)
   useEffect(() => {
     let cancelled = false;
 
@@ -156,9 +154,7 @@ export default function App() {
           setIsLoggedIn(true);
           setCurrentTutor(me);
         }
-      } catch {
-        // not logged in - ignore
-      }
+      } catch {}
     }
 
     restoreSession();
@@ -167,34 +163,31 @@ export default function App() {
     };
   }, []);
 
-  // ✅ Login handler (called by LoginModal)
+  // Login handler (called by LoginModal)
   const handleLogin = (tutor) => {
     setIsLoggedIn(true);
     setCurrentTutor(tutor);
     setShowLoginModal(false);
   };
 
-  // ✅ Logout handler
+  // Logout handler
   const handleLogout = async () => {
     try {
       await fetchJson("/api/auth/logout", { method: "POST" });
-    } catch {
-      // ignore
-    }
+    } catch {}
     setIsLoggedIn(false);
     setCurrentTutor(null);
   };
 
   /**
    * CreateAdvertisement -> Create an Ad in DB + create Availability rows in DB,
-   * then update UI immediately so you can demo instantly.
+   * then update UI immediately
    */
   const handleCreateAdvertisement = async (newTutor) => {
     try {
       if (!newTutor) throw new Error("Missing form data");
 
-      // ✅ Always verify session (source of truth)
-      const me = await fetchJson("/api/auth/me"); // uses credentials: "include"
+      const me = await fetchJson("/api/auth/me");
       if (!me?.tutor_id) throw new Error("Not logged in as a tutor");
 
       setCurrentTutor(me);
@@ -243,7 +236,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tutor_id, // ✅ from /me
+          tutor_id,
           location_id,
           instrument_id,
           ad_description: newTutor.bio || "New tutor ad",
@@ -378,7 +371,7 @@ export default function App() {
       <TutorDashboard
         onLogout={handleLogout}
         onCreateAdvertisement={handleCreateAdvertisement}
-        currentTutor={currentTutor} // ✅ useful for “Welcome, Sarah”
+        currentTutor={currentTutor} // might be useful for “Welcome, Sarah”
       />
     );
   }

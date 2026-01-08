@@ -57,7 +57,6 @@ export const getAdById = async (req, res) => {
 // Create a new ad
 export const createAd = async (req, res) => {
   try {
-    // ✅ requireAuth already verified + attached tutorId
     const tutorId = req.tutorId;
     if (!tutorId) return res.status(401).json({ error: "Not logged in" });
 
@@ -89,7 +88,6 @@ export const createAd = async (req, res) => {
   }
 };
 
-
 // Update an existing ad
 export const updateAd = async (req, res) => {
   try {
@@ -108,7 +106,6 @@ export const updateAd = async (req, res) => {
     const ad = await Ad.findByPk(id);
     if (!ad) return res.status(404).json({ error: "Ad not found" });
 
-    // ✅ DO NOT allow tutor_id updates from the client
     if (location_id !== undefined) ad.location_id = location_id;
     if (instrument_id !== undefined) ad.instrument_id = instrument_id;
     if (ad_description !== undefined) ad.ad_description = ad_description;
@@ -166,7 +163,7 @@ export const getAvailabilityForAd = async (req, res) => {
 // get all ads for a given tutor
 export const getMyAds = async (req, res) => {
   try {
-    const tutorId = req.tutorId; // set by requireAuth
+    const tutorId = req.tutorId;
     const ads = await Ad.findAll({
       where: { tutor_id: tutorId },
       order: [["ad_id", "DESC"]],

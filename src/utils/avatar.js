@@ -1,4 +1,4 @@
-// Stable Unsplash “portrait/headshot-ish” URLs (consistent demo)
+// Stable Unsplash portrait/headshot-ish URLs
 export const AVATARS = [
   "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=800&fit=crop&crop=faces",
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=800&fit=crop&crop=faces",
@@ -10,7 +10,6 @@ export const AVATARS = [
   "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=800&fit=crop&crop=faces",
 ];
 
-// Deterministic “hash” so the same input => same avatar
 export function pickStableAvatar(seedString = "") {
   const s = String(seedString);
   let hash = 0;

@@ -31,16 +31,10 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  },
+  }
 );
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}) {
+function Button({ className, variant, size, asChild = false, ...props }) {
   const Comp = asChild ? Slot : "button";
 
   return (

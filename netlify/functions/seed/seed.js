@@ -4,7 +4,7 @@ import Instrument from "../models/Instrument.js";
 import Tutor from "../models/Tutor.js";
 import Ad from "../models/ad.js";
 import Availability from "../models/Availability.js";
-import User from "../models/User.js"; // ✅ add this (you already have models/User.js)
+import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 
 function pick(arr) {
@@ -61,7 +61,7 @@ const INSTRUMENTS = [
   "Keyboard",
 ];
 
-// stable Unsplash portrait URLs
+// stable Unsplash portrait URLs so they dont change every refresh
 const AVATARS = [
   "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=800&fit=crop&crop=faces",
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=800&fit=crop&crop=faces",
@@ -82,7 +82,6 @@ async function seed() {
     await sequelize.authenticate();
     console.log("✅ DB connected");
 
-    // ✅ wipe everything properly (FK-safe, resets ids)
     await sequelize.query(`
       TRUNCATE TABLE
         availabilities,
@@ -95,19 +94,19 @@ async function seed() {
       CASCADE;
     `);
 
-    // 1) Locations
+    // Locations
     const createdLocations = await Location.bulkCreate(
       LOCATIONS.map((location_name) => ({ location_name })),
       { returning: true }
     );
 
-    // 2) Instruments
+    // Instruments
     const createdInstruments = await Instrument.bulkCreate(
       INSTRUMENTS.map((instrument_name) => ({ instrument_name })),
       { returning: true }
     );
 
-    // 3) Demo user (so Availability.user_id is valid)
+    // Demo user (so Availability.user_id is valid)
     const demoUser = await User.create({
       name: "Demo User",
       email: "demo.user@example.com",
@@ -118,22 +117,22 @@ async function seed() {
 
     const hashedPassword = await bcrypt.hash("password", 10);
 
-    // 4) Tutors (8)
+    // Tutors (8)
     const tutors = await Tutor.bulkCreate(
-  pickMany(TUTOR_NAMES, 8).map((name, idx) => ({
-    name,
-    avatar_url: AVATARS[idx % AVATARS.length],
-    phone: 400000000 + idx,
-    location_id: pick(createdLocations).location_id,
-    email: `${name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-    username: `${name.toLowerCase().replace(/\s+/g, "")}${idx}`,
-    password: hashedPassword, // ✅ hashed now
-    account_status: "active",
-  })),
-  { returning: true }
-);
+      pickMany(TUTOR_NAMES, 8).map((name, idx) => ({
+        name,
+        avatar_url: AVATARS[idx % AVATARS.length],
+        phone: 400000000 + idx,
+        location_id: pick(createdLocations).location_id,
+        email: `${name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
+        username: `${name.toLowerCase().replace(/\s+/g, "")}${idx}`,
+        password: hashedPassword, // ✅ hashed now
+        account_status: "active",
+      })),
+      { returning: true }
+    );
 
-    // 5) Ads (12)
+    // Ads (12)
     const blurbs = [
       "Friendly lessons for beginners through advanced.",
       "Focus on technique, musicality, and confidence.",
@@ -158,14 +157,14 @@ async function seed() {
           ad_description: `${pick(blurbs)} (${instrument.instrument_name})`,
           years_experience: years,
           hourly_rate: rate,
-          img_url: tutor.avatar_url, // nice for UI
+          img_url: tutor.avatar_url,
           destroy_at: null,
         };
       }),
       { returning: true }
     );
 
-    // 6) Availability (3 per ad)
+    // Availability (3 per ad)
     const availabilities = [];
     ads.forEach((ad) => {
       for (let i = 0; i < 3; i++) {
@@ -178,7 +177,7 @@ async function seed() {
 
         availabilities.push({
           ad_id: ad.ad_id,
-          user_id: demoUser.user_id, // ✅ valid user FK
+          user_id: demoUser.user_id,
           start_time: start,
           end_time: end,
           is_booked: false,

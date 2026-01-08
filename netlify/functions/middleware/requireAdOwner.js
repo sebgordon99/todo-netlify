@@ -2,7 +2,7 @@ import Ad from "../models/ad.js";
 
 export async function requireAdOwner(req, res, next) {
   try {
-    const tutorId = req.tutorId; // set by requireAuth
+    const tutorId = req.tutorId;
     if (!tutorId) return res.status(401).json({ error: "Not logged in" });
 
     const adId = Number(req.params.id);

@@ -22,7 +22,6 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ error: "Not logged in" });
     }
 
-    // ✅ attach for later middleware/controllers
     req.tutor = tutor;
     req.tutorId = tutor.tutor_id;
 

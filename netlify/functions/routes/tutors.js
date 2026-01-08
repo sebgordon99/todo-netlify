@@ -1,10 +1,10 @@
 import express from "express";
-import { 
-  getAllTutors, 
-  getTutorById, 
-  createTutor, 
-  updateTutor, 
-  deleteTutor 
+import {
+  getAllTutors,
+  getTutorById,
+  createTutor,
+  updateTutor,
+  deleteTutor,
 } from "../controllers/tutorController.js";
 
 const router = express.Router();

@@ -1,6 +1,6 @@
 import { mockAvailabilityByAdId } from "./mockAvailability";
 
-// simple in-memory store (demo-friendly)
+// in-memory store
 const store = {
   ...mockAvailabilityByAdId,
 };
