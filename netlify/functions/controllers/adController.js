@@ -94,8 +94,8 @@ export const createAd = async (req, res) => {
 export const updateAd = async (req, res) => {
   try {
     const { id } = req.params;
+
     const {
-      tutor_id,
       location_id,
       instrument_id,
       ad_description,
@@ -106,25 +106,22 @@ export const updateAd = async (req, res) => {
     } = req.body;
 
     const ad = await Ad.findByPk(id);
-    if (!ad) {
-      return res.status(404).json({ error: "Ad not found" });
-    }
+    if (!ad) return res.status(404).json({ error: "Ad not found" });
 
-    // Only update fields that are present in the request
-    if (tutor_id !== undefined) ad.tutor_id = tutor_id;
+    // ✅ DO NOT allow tutor_id updates from the client
     if (location_id !== undefined) ad.location_id = location_id;
     if (instrument_id !== undefined) ad.instrument_id = instrument_id;
     if (ad_description !== undefined) ad.ad_description = ad_description;
     if (years_experience !== undefined) ad.years_experience = years_experience;
     if (hourly_rate !== undefined) ad.hourly_rate = hourly_rate;
     if (img_url !== undefined) ad.img_url = img_url;
-    if (destroy_at !== undefined) ad.destroy_at = destroy_at;
+    if (destroy_at !== undefined) ad.destroy_at = destroy_at ?? null;
 
     await ad.save();
-    res.json(ad);
+    return res.json(ad);
   } catch (error) {
     console.error("Error updating ad:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -163,5 +160,26 @@ export const getAvailabilityForAd = async (req, res) => {
   } catch (error) {
     console.error("Error fetching availability for ad:", error);
     return res.status(500).json({ error: error.message });
+  }
+};
+
+// get all ads for a given tutor
+export const getMyAds = async (req, res) => {
+  try {
+    const tutorId = req.tutorId; // set by requireAuth
+    const ads = await Ad.findAll({
+      where: { tutor_id: tutorId },
+      order: [["ad_id", "DESC"]],
+      include: [
+        { model: Tutor, attributes: ["tutor_id", "name", "avatar_url"] },
+        { model: Location, attributes: ["location_id", "location_name"] },
+        { model: Instrument, attributes: ["instrument_id", "instrument_name"] },
+      ],
+    });
+
+    return res.json(ads);
+  } catch (err) {
+    console.error("getMyAds error:", err);
+    return res.status(500).json({ error: err.message });
   }
 };

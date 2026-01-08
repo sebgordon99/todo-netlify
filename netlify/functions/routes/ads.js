@@ -5,7 +5,8 @@ import {
   createAd,
   updateAd,
   deleteAd,
-  getAvailabilityForAd
+  getAvailabilityForAd,
+  getMyAds
 } from "../controllers/adController.js";
 
 import { requireAuth } from "../middleware/requireAuth.js";
@@ -15,6 +16,9 @@ const router = express.Router();
 
 // Get all ads
 router.get("/", getAllAds);
+
+// Get ads of a given tutor
+router.get("/mine", requireAuth, getMyAds);
 
 // Get availability by ad
 router.get("/:id/availability", getAvailabilityForAd);
