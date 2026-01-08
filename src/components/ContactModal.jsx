@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { mockAvailabilityByAdId } from "../data/mockAvailability";
+import { getSlotsForAd, bookSlot } from "../data/availabilityStore";
 
 function formatRange(start, end) {
   try {
@@ -42,14 +43,12 @@ export function ContactModal({ tutor, onClose }) {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  setLoading(true);
-
-  const slotsForAd = mockAvailabilityByAdId[tutor?.adId] || [];
-  setSlots(slotsForAd);
-
-  setLoading(false);
-}, [tutor?.adId]);
+  useEffect(() => {
+    setLoading(true);
+    const slotsForAd = getSlotsForAd(tutor?.adId);
+    setSlots(slotsForAd);
+    setLoading(false);
+  }, [tutor?.adId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -91,39 +90,36 @@ useEffect(() => {
             </p>
           ) : (
             <ul className="space-y-2">
-  {slots.map((s) => (
-    <li
-      key={s.availability_id}
-      className="rounded-md border px-3 py-2 text-sm"
-    >
-      <div>{formatRange(s.start_time, s.end_time)}</div>
+              {slots.map((s) => (
+                <li
+                  key={s.availability_id}
+                  className="rounded-md border px-3 py-2 text-sm"
+                >
+                  <div>{formatRange(s.start_time, s.end_time)}</div>
 
-      <div className="text-xs text-muted-foreground mt-1">
-        {s.is_booked ? "Booked" : "Open"}
-        {typeof s.user_capacity === "number" ? ` · Capacity: ${s.user_capacity}` : ""}
-      </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {s.is_booked ? "Booked" : "Open"}
+                    {typeof s.user_capacity === "number"
+                      ? ` · Capacity: ${s.user_capacity}`
+                      : ""}
+                  </div>
 
-      {/* ✅ Book button belongs INSIDE the map so "s" exists */}
-      {!s.is_booked && (
-  <Button
-    type="button"
-    className="mt-2"
-    onClick={() => {
-      setSlots((prev) =>
-        prev.map((x) =>
-          x.availability_id === s.availability_id
-            ? { ...x, is_booked: true }
-            : x
-        )
-      );
-    }}
-  >
-    Book this time
-  </Button>
-)}
-    </li>
-  ))}
-</ul>
+                  {/* ✅ Book button belongs INSIDE the map so "s" exists */}
+                  {!s.is_booked && (
+                    <Button
+                      type="button"
+                      className="mt-2"
+                      onClick={() => {
+                        const updated = bookSlot(tutor.adId, s.availability_id);
+                        setSlots(updated);
+                      }}
+                    >
+                      Book this time
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 

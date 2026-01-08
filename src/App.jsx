@@ -18,24 +18,73 @@ import {
 } from "./components/ui/select";
 import { Music, Search, LogIn } from "lucide-react";
 import { mockAds } from "./data/mockAds";
+import { setSlotsForAd } from "./data/availabilityStore";
 
 function adToCardModel(ad) {
   return {
     // keep your UI keys
-    id: String(ad.ad_id),              // TutorCard uses tutor.id
-    name: `Ad #${ad.ad_id}`,           // placeholder for now
-    avatarUrl: ad.img_url || "",       // optional
+    id: String(ad.ad_id), // TutorCard uses tutor.id
+    name: `Ad #${ad.ad_id}`, // placeholder for now
+    avatarUrl: ad.img_url || "", // optional
     bio: ad.ad_description || "",
     experience: ad.years_experience ?? 0,
     hourlyRate: Number(ad.hourly_rate ?? 0),
-    rating: 4.7,                       // placeholder for demo
-    instruments: ["Guitar"],           // placeholder until we join instruments
-    suburb: "Sydney",                  // placeholder until we join locations
-    availability: [],                  // we’ll fetch real slots per-ad
+    rating: 4.7, // placeholder for demo
+    instruments: ["Guitar"], // placeholder until we join instruments
+    suburb: "Sydney", // placeholder until we join locations
+    availability: [], // we’ll fetch real slots per-ad
 
     // IMPORTANT: keep the real ad id for API calls
     adId: ad.ad_id,
   };
+}
+
+const DAY_INDEX = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+function nextDateForDay(dayName) {
+  const today = new Date();
+  const target = DAY_INDEX[dayName];
+  const diff = (target - today.getDay() + 7) % 7;
+  const d = new Date(today);
+  d.setDate(today.getDate() + (diff === 0 ? 7 : diff)); // next occurrence (not today)
+  return d;
+}
+
+function makeSlotsFromDays(days, countPerDay = 1) {
+  const slots = [];
+  let id = Date.now();
+
+  days.forEach((day) => {
+    const base = nextDateForDay(day);
+
+    for (let i = 0; i < countPerDay; i++) {
+      const start = new Date(base);
+      start.setHours(18 + i, 0, 0, 0); // 6pm, 7pm, ...
+
+      const end = new Date(start);
+      end.setHours(start.getHours() + 1);
+
+      slots.push({
+        availability_id: id++,
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        is_booked: false,
+        user_capacity: 1,
+      });
+    }
+  });
+
+  // earliest first
+  slots.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  return slots;
 }
 
 export default function App() {
@@ -51,29 +100,29 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-useEffect(() => {
-  let cancelled = false;
+  useEffect(() => {
+    let cancelled = false;
 
-  async function fetchAds() {
-    try {
-      const res = await fetch("/api/ads");
-      const data = await res.json();
+    async function fetchAds() {
+      try {
+        const res = await fetch("/api/ads");
+        const data = await res.json();
 
-      if (!cancelled) {
-        setTutors(Array.isArray(data) ? data.map(adToCardModel) : []);
+        if (!cancelled) {
+          setTutors(Array.isArray(data) ? data.map(adToCardModel) : []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch ads", err);
+        if (!cancelled) setTutors([]);
       }
-    } catch (err) {
-      console.error("Failed to fetch ads", err);
-      if (!cancelled) setTutors([]);
     }
-  }
 
-  fetchAds();
+    fetchAds();
 
-  return () => {
-    cancelled = true;
-  };
-}, []);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchAds() {
@@ -114,22 +163,26 @@ useEffect(() => {
     setIsLoggedIn(false);
   };
 
-const handleCreateAdvertisement = (newTutor) => {
-  const tutorWithId = {
-    ...newTutor,
-    id: String(Date.now()),
-    adId: Number(Date.now()), // for availability mapping
-    rating: 5.0,
-    totalReviews: 0,
-    image: newTutor.image || "https://images.unsplash.com/photo-1520975693410-0018c6fbbf74?auto=format&fit=crop&w=1200&q=60",
-    instruments: newTutor.instruments || [],
-    suburb: newTutor.suburb || "Sydney",
-    experience: Number(newTutor.experience ?? 0),
-    hourlyRate: Number(newTutor.hourlyRate ?? 0),
-  };
+  const handleCreateAdvertisement = (newTutor) => {
+    const adId = Date.now();
 
-  setTutors((prev) => [tutorWithId, ...prev]);
-};
+    const tutorWithId = {
+      ...newTutor,
+      id: String(adId),
+      adId,
+      rating: 5.0,
+      totalReviews: 0,
+      image:
+        newTutor.image ||
+        "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop",
+    };
+
+    // ✅ generate bookable time slots from selected days
+    const slots = makeSlotsFromDays(newTutor.availability || [], 1);
+    setSlotsForAd(adId, slots);
+
+    setTutors((prev) => [tutorWithId, ...prev]);
+  };
 
   // Get unique instruments and suburbs from all tutors
   const availableInstruments = useMemo(() => {
