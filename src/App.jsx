@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
-import { mockTutors as initialMockTutors } from "./data/mockTutors";
+import { useState, useMemo, useEffect } from "react";
+// import { mockTutors as initialMockTutors } from "./data/mockTutors";
+import { mockTutors } from "./data/mockTutors";
 import { FilterPanel } from "./components/FilterPanel";
 import { TutorCard } from "./components/TutorCard";
 import { ContactModal } from "./components/ContactModal";
@@ -18,7 +19,9 @@ import {
 import { Music, Search, LogIn } from "lucide-react";
 
 export default function App() {
-  const [tutors, setTutors] = useState(initialMockTutors);
+  // const [tutors, setTutors] = useState(initialMockTutors);
+  const [tutors, setTutors] = useState([]);
+
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [selectedSuburbs, setSelectedSuburbs] = useState([]);
   const [selectedDays, setSelectedDays] = useState([]);
@@ -27,6 +30,36 @@ export default function App() {
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    async function fetchAds() {
+      try {
+        const res = await fetch("/api/ads");
+        const data = await res.json();
+
+        const apiTutors = data.map((ad) => ({
+          id: `api-${ad.ad_id}`,
+          name: ad.tutor?.name ?? "Unknown Tutor",
+          avatar: ad.tutor?.avatar_url ?? null,
+          suburb: ad.location?.location_name ?? "Unknown",
+          instruments: [ad.instrument?.instrument_name].filter(Boolean),
+          bio: ad.ad_description,
+          hourlyRate: ad.hourly_rate,
+          experience: ad.years_experience,
+          rating: 5,
+          availability: [],
+        }));
+
+        // 🔥 merge mock + API
+        setTutors([...mockTutors, ...apiTutors]);
+      } catch (err) {
+        console.error("Failed to fetch ads", err);
+        setTutors(mockTutors); // fallback safety
+      }
+    }
+
+    fetchAds();
+  }, []);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
@@ -49,7 +82,9 @@ export default function App() {
   const availableInstruments = useMemo(() => {
     const instruments = new Set();
     tutors.forEach((tutor) => {
-      tutor.instruments.forEach((instrument) => instruments.add(instrument));
+      (tutor.instruments || []).forEach((instrument) =>
+        instruments.add(instrument)
+      );
     });
     return Array.from(instruments).sort();
   }, [tutors]);

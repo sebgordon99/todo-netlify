@@ -1,3 +1,90 @@
+// import sequelize from "../config/database.js";
+
+// import Ad from "./ad.js";
+// import Availability from "./Availability.js";
+// import Location from "./Location.js";
+// import Instrument from "./Instrument.js";
+// import User from "./User.js";
+// import Tutor from "./Tutor.js";
+// import UserFavouriteAd from "./UserFavouriteAd.js";
+// import UserFavouriteInstrument from "./UserFavouriteInstrument.js";
+// import UserFavouriteLocation from "./UserFavouriteLocation.js";
+// import UserFavouriteTutor from "./UserFavouriteTutor.js";
+
+// let dbInitialized = false;
+
+// async function initializeDatabase() {
+//   if (dbInitialized) return;
+
+//   try {
+//     await sequelize.authenticate();
+
+//     // USERS ↔ LOCATIONS
+//     User.belongsTo(Location, { foreignKey: "location_id" });
+//     Location.hasMany(User, { foreignKey: "location_id" });
+
+//     // TUTORS ↔ LOCATIONS
+//     Tutor.belongsTo(Location, { foreignKey: "location_id" });
+//     Location.hasMany(Tutor, { foreignKey: "location_id" });
+
+//     // TUTORS ↔ ADS
+//     Tutor.hasMany(Ad, { foreignKey: "tutor_id" });
+//     Ad.belongsTo(Tutor, { foreignKey: "tutor_id" });
+
+//     // ADS ↔ LOCATIONS
+//     Ad.belongsTo(Location, { foreignKey: "location_id" });
+//     Location.hasMany(Ad, { foreignKey: "location_id" });
+
+//     // ADS ↔ INSTRUMENTS
+//     Ad.belongsTo(Instrument, { foreignKey: "instrument_id" });
+//     Instrument.hasMany(Ad, { foreignKey: "instrument_id" });
+
+//     // ADS ↔ AVAILABILITY
+//     Ad.hasMany(Availability, { foreignKey: "ad_id" });
+//     Availability.belongsTo(Ad, { foreignKey: "ad_id" });
+
+//     // USERS ↔ AVAILABILITY
+//     User.hasMany(Availability, { foreignKey: "user_id" });
+//     Availability.belongsTo(User, { foreignKey: "user_id" });
+
+//     // FAVOURITES
+//     User.belongsToMany(Tutor, {
+//       through: UserFavouriteTutor,
+//       foreignKey: "user_id",
+//       otherKey: "tutor_id",
+//     });
+
+//     User.belongsToMany(Location, {
+//       through: UserFavouriteLocation,
+//       foreignKey: "user_id",
+//       otherKey: "location_id",
+//     });
+
+//     User.belongsToMany(Instrument, {
+//       through: UserFavouriteInstrument,
+//       foreignKey: "user_id",
+//       otherKey: "instrument_id",
+//     });
+
+//     User.belongsToMany(Ad, {
+//       through: UserFavouriteAd,
+//       foreignKey: "user_id",
+//       otherKey: "ad_id",
+//     });
+
+//     // Sync (dev only)
+//     await sequelize.sync({ alter: true });
+
+//     dbInitialized = true;
+//     console.log("✅ Database initialized");
+//   } catch (error) {
+//     console.error("❌ Database init failed:", error);
+//     throw error;
+//   }
+// }
+
+// export default initializeDatabase;
+
 import sequelize from "../config/database.js";
 
 import Ad from "./ad.js";
@@ -72,15 +159,12 @@ async function initializeDatabase() {
       otherKey: "ad_id",
     });
 
-    // Sync (dev only)
-    await sequelize.sync({ alter: true });
-
     dbInitialized = true;
-    console.log("✅ Database initialized");
+    console.log("✅ Database associations initialized");
   } catch (error) {
     console.error("❌ Database init failed:", error);
     throw error;
   }
 }
 
-export default initializeDatabase;
+export { sequelize, initializeDatabase };

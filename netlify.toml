@@ -3,8 +3,7 @@
   command = "npm run build"
 
 [functions]
-  external_node_modules = ["express", "pg", "sequelize", "cors"]
-  node_bundler = "esbuild"
+  node_bundler = "zisi"
   
 [[redirects]]
   force = true
