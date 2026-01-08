@@ -4,6 +4,7 @@ import Instrument from "../models/Instrument.js";
 import Tutor from "../models/Tutor.js";
 import Ad from "../models/ad.js";
 import Availability from "../models/Availability.js";
+import User from "../models/User.js"; // ✅ add this (you already have models/User.js)
 
 function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -59,8 +60,7 @@ const INSTRUMENTS = [
   "Keyboard",
 ];
 
-// Use stable Unsplash image URLs (not random) so demos are consistent.
-// These are “portrait/headshot-ish” photos. You can swap/add as you like.
+// stable Unsplash portrait URLs
 const AVATARS = [
   "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=800&fit=crop&crop=faces",
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=800&fit=crop&crop=faces",
@@ -81,12 +81,18 @@ async function seed() {
     await sequelize.authenticate();
     console.log("✅ DB connected");
 
-    // DEV ONLY: wipe (order matters for FKs)
-    await Availability.destroy({ where: {} });
-    await Ad.destroy({ where: {} });
-    await Tutor.destroy({ where: {} });
-    await Instrument.destroy({ where: {} });
-    await Location.destroy({ where: {} });
+    // ✅ wipe everything properly (FK-safe, resets ids)
+    await sequelize.query(`
+      TRUNCATE TABLE
+        availabilities,
+        ads,
+        tutors,
+        users,
+        instruments,
+        locations
+      RESTART IDENTITY
+      CASCADE;
+    `);
 
     // 1) Locations
     const createdLocations = await Location.bulkCreate(
@@ -100,13 +106,21 @@ async function seed() {
       { returning: true }
     );
 
-    // 3) Tutors
-    // Create ~8 tutors (enough variety, not too many)
+    // 3) Demo user (so Availability.user_id is valid)
+    const demoUser = await User.create({
+      name: "Demo User",
+      email: "demo.user@example.com",
+      username: "demouser",
+      password: "password",
+      location_id: pick(createdLocations).location_id,
+    });
+
+    // 4) Tutors (8)
     const tutors = await Tutor.bulkCreate(
       pickMany(TUTOR_NAMES, 8).map((name, idx) => ({
         name,
         avatar_url: AVATARS[idx % AVATARS.length],
-        phone: 400000000 + idx,
+        phone: String(400000000 + idx),
         location_id: pick(createdLocations).location_id,
         email: `${name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
         username: `${name.toLowerCase().replace(/\s+/g, "")}${idx}`,
@@ -116,39 +130,39 @@ async function seed() {
       { returning: true }
     );
 
-    // 4) Ads (10–12)
-    const adsToCreate = Array.from({ length: 12 }).map((_, i) => {
-      const tutor = pick(tutors);
-      const instrument = pick(createdInstruments);
-      const location = pick(createdLocations);
+    // 5) Ads (12)
+    const blurbs = [
+      "Friendly lessons for beginners through advanced.",
+      "Focus on technique, musicality, and confidence.",
+      "Tailored practice plans and fun repertoire.",
+      "Exam prep, improvisation, and songwriting available.",
+      "Patient, structured, and goal-focused teaching style.",
+    ];
 
-      const years = 2 + (i % 15);
-      const rate = 45 + i * 5;
+    const ads = await Ad.bulkCreate(
+      Array.from({ length: 12 }).map((_, i) => {
+        const tutor = pick(tutors);
+        const instrument = pick(createdInstruments);
+        const location = pick(createdLocations);
 
-      const blurbs = [
-        "Friendly lessons for beginners through advanced.",
-        "Focus on technique, musicality, and confidence.",
-        "Tailored practice plans and fun repertoire.",
-        "Exam prep, improvisation, and songwriting available.",
-        "Patient, structured, and goal-focused teaching style.",
-      ];
+        const years = 2 + (i % 15);
+        const rate = 45 + i * 5;
 
-      return {
-        tutor_id: tutor.tutor_id,
-        location_id: location.location_id,
-        instrument_id: instrument.instrument_id,
-        ad_description: `${pick(blurbs)} (${instrument.instrument_name})`,
-        years_experience: years,
-        hourly_rate: rate,
-        // Use tutor avatar as the card image for now (works well visually)
-        img_url: tutor.avatar_url,
-        destroy_at: null,
-      };
-    });
+        return {
+          tutor_id: tutor.tutor_id,
+          location_id: location.location_id,
+          instrument_id: instrument.instrument_id,
+          ad_description: `${pick(blurbs)} (${instrument.instrument_name})`,
+          years_experience: years,
+          hourly_rate: rate,
+          img_url: tutor.avatar_url, // nice for UI
+          destroy_at: null,
+        };
+      }),
+      { returning: true }
+    );
 
-    const ads = await Ad.bulkCreate(adsToCreate, { returning: true });
-
-    // 5) Availability (3 slots per ad)
+    // 6) Availability (3 per ad)
     const availabilities = [];
     ads.forEach((ad) => {
       for (let i = 0; i < 3; i++) {
@@ -161,7 +175,7 @@ async function seed() {
 
         availabilities.push({
           ad_id: ad.ad_id,
-          user_id: 1, // demo user
+          user_id: demoUser.user_id, // ✅ valid user FK
           start_time: start,
           end_time: end,
           is_booked: false,

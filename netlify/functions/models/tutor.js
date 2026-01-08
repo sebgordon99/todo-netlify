@@ -9,6 +9,13 @@ const Tutor = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
+
+    // ✅ Needed for Tutor ↔ Locations FK
+    location_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
     account_status: DataTypes.STRING,
     name: DataTypes.STRING,
     avatar_url: DataTypes.STRING,
@@ -27,7 +34,7 @@ const Tutor = sequelize.define(
     tableName: "tutors",
     underscored: true,
     timestamps: false,
-    paranoid: true,
+    paranoid: false, // ✅ for demo simplicity
   }
 );
 

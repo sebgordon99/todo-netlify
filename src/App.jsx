@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { mockTutors as initialMockTutors } from "./data/mockTutors";
 import { FilterPanel } from "./components/FilterPanel";
 import { TutorCard } from "./components/TutorCard";
 import { ContactModal } from "./components/ContactModal";
@@ -16,129 +15,118 @@ import {
   SelectValue,
 } from "./components/ui/select";
 import { Music, Search, LogIn } from "lucide-react";
-import { mockAds } from "./data/mockAds";
-import { setSlotsForAd } from "./data/availabilityStore";
 
-function adToCardModel(ad) {
-  return {
-    // keep your UI keys
-    id: String(ad.ad_id), // TutorCard uses tutor.id
-    name: `Ad #${ad.ad_id}`, // placeholder for now
-    avatarUrl: ad.img_url || "", // optional
-    bio: ad.ad_description || "",
-    experience: ad.years_experience ?? 0,
-    hourlyRate: Number(ad.hourly_rate ?? 0),
-    rating: 4.7, // placeholder for demo
-    instruments: ["Guitar"], // placeholder until we join instruments
-    suburb: "Sydney", // placeholder until we join locations
-    availability: [], // we’ll fetch real slots per-ad
-
-    // IMPORTANT: keep the real ad id for API calls
-    adId: ad.ad_id,
-  };
+/** Small helper: fetch JSON and throw useful errors */
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = data?.error || `Request failed: ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
 }
 
-const DAY_INDEX = {
-  Sunday: 0,
-  Monday: 1,
-  Tuesday: 2,
-  Wednesday: 3,
-  Thursday: 4,
-  Friday: 5,
-  Saturday: 6,
-};
-
-function nextDateForDay(dayName) {
-  const today = new Date();
-  const target = DAY_INDEX[dayName];
-  const diff = (target - today.getDay() + 7) % 7;
-  const d = new Date(today);
-  d.setDate(today.getDate() + (diff === 0 ? 7 : diff)); // next occurrence (not today)
-  return d;
-}
-
+/**
+ * Creates bookable slots from the CreateAdvertisement "availability days".
+ * We save these into the DB as Availability rows.
+ */
 function makeSlotsFromDays(days, countPerDay = 1) {
-  const slots = [];
-  let id = Date.now();
+  const DAY_INDEX = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  };
 
-  days.forEach((day) => {
+  function nextDateForDay(dayName) {
+    const today = new Date();
+    const target = DAY_INDEX[dayName];
+    const diff = (target - today.getDay() + 7) % 7;
+    const d = new Date(today);
+    // "next occurrence (not today)" so demos always look future-y
+    d.setDate(today.getDate() + (diff === 0 ? 7 : diff));
+    return d;
+  }
+
+  const slots = [];
+  (days || []).forEach((day) => {
     const base = nextDateForDay(day);
 
     for (let i = 0; i < countPerDay; i++) {
       const start = new Date(base);
-      start.setHours(18 + i, 0, 0, 0); // 6pm, 7pm, ...
+      start.setHours(18 + i, 0, 0, 0); // 6pm, 7pm...
 
       const end = new Date(start);
       end.setHours(start.getHours() + 1);
 
       slots.push({
-        availability_id: id++,
         start_time: start.toISOString(),
         end_time: end.toISOString(),
-        is_booked: false,
-        user_capacity: 1,
       });
     }
   });
 
-  // earliest first
   slots.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
   return slots;
 }
 
 export default function App() {
+  const [tutors, setTutors] = useState([]); // DB ads mapped into TutorCard shape
+  const [loadingAds, setLoadingAds] = useState(false);
+
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [selectedSuburbs, setSelectedSuburbs] = useState([]);
-  // const [selectedDays, setSelectedDays] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("rating");
+
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [tutors, setTutors] = useState(initialMockTutors);
-  const [loadingAds, setLoadingAds] = useState(false);
 
+  // Load DB ads on startup
   useEffect(() => {
     let cancelled = false;
 
     async function loadAds() {
       setLoadingAds(true);
       try {
-        const res = await fetch("/api/ads");
-        const ads = await res.json();
+        const ads = await fetchJson("/api/ads");
 
-        // Map API ad -> TutorCard shape
         const mapped = (Array.isArray(ads) ? ads : []).map((ad) => ({
+          // Required by TutorCard key
           id: `ad-${ad.ad_id}`,
+          // Required by ContactModal availability fetch
           adId: ad.ad_id,
 
+          // Display fields
           name: ad.Tutor?.name ?? `Tutor #${ad.tutor_id}`,
           suburb: ad.Location?.location_name ?? "Unknown location",
           image:
             ad.Tutor?.avatar_url ||
             ad.img_url ||
             "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600&h=400&fit=crop",
-
           bio: ad.ad_description || "",
-          instruments: [ad.Instrument?.instrument_name].filter(Boolean),
+
+          // Always make this an array so filtering never crashes
+          instruments: [ad.Instrument?.instrument_name || "Piano"],
 
           experience: ad.years_experience ?? 0,
           hourlyRate: Number(ad.hourly_rate ?? 0),
 
+          // Keep sort UI working (placeholders for demo)
           rating: 5.0,
           totalReviews: 0,
         }));
 
-        if (!cancelled) {
-          // Option A: Replace mock tutors with API tutors
-          setTutors(mapped);
-
-          // Option B: Keep mock tutors AND show API tutors too:
-          // setTutors([...initialMockTutors, ...mapped]);
-        }
+        if (!cancelled) setTutors(mapped);
       } catch (e) {
         console.error("Failed to load ads", e);
-        // If API fails, keep mock tutors
+        // If API fails, show empty list (and your UI will show "No tutors found")
+        if (!cancelled) setTutors([]);
       } finally {
         if (!cancelled) setLoadingAds(false);
       }
@@ -159,93 +147,216 @@ export default function App() {
     setIsLoggedIn(false);
   };
 
-  const handleCreateAdvertisement = (newTutor) => {
-    const adId = Date.now();
+  /**
+   * CreateAdvertisement -> Create an Ad in DB + create Availability rows in DB,
+   * then update UI immediately so you can demo instantly.
+   */
+  const handleCreateAdvertisement = async (newTutor) => {
+    try {
+      // 0) Basic validation
+      if (!newTutor) throw new Error("Missing form data");
 
-    const tutorWithId = {
-      ...newTutor,
-      id: String(adId),
-      adId,
-      rating: 5.0,
-      totalReviews: 0,
-      image:
-        newTutor.image ||
-        "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop",
-    };
+      const chosenInstrumentName = (newTutor.instruments || [])[0] || "Piano";
 
-    // ✅ generate bookable time slots from selected days
-    const slots = makeSlotsFromDays(newTutor.availability || [], 1);
-    setSlotsForAd(adId, slots);
+      const chosenLocationName = newTutor.suburb || "Sydney CBD";
 
-    setTutors((prev) => [tutorWithId, ...prev]);
+      // 1) Pick a tutor_id that actually exists in DB
+      const tutorsFromDb = await fetchJson("/api/tutors");
+      const tutor_id = Array.isArray(tutorsFromDb)
+        ? tutorsFromDb[0]?.tutor_id
+        : null;
+
+      if (!tutor_id) {
+        throw new Error(
+          "No tutors exist in DB (or /api/tutors is empty). Run the seed script."
+        );
+      }
+
+      // 2) Resolve instrument_id (fallback to first instrument)
+      let instrument_id = null;
+      try {
+        const instruments = await fetchJson("/api/instruments");
+        if (Array.isArray(instruments) && instruments.length > 0) {
+          const match = instruments.find(
+            (i) =>
+              String(i.instrument_name || "")
+                .toLowerCase()
+                .trim() === chosenInstrumentName.toLowerCase().trim()
+          );
+          instrument_id = match?.instrument_id ?? instruments[0].instrument_id;
+        }
+      } catch {
+        // ignore and fallback below
+      }
+
+      if (!instrument_id) instrument_id = 1; // last-resort fallback
+
+      // 3) Resolve location_id (fallback to first location)
+      let location_id = null;
+      try {
+        const locations = await fetchJson("/api/locations");
+        if (Array.isArray(locations) && locations.length > 0) {
+          const match = locations.find(
+            (l) =>
+              String(l.location_name || "")
+                .toLowerCase()
+                .trim() === chosenLocationName.toLowerCase().trim()
+          );
+          location_id = match?.location_id ?? locations[0].location_id;
+        }
+      } catch {
+        // ignore and fallback below
+      }
+
+      if (!location_id) location_id = 1; // last-resort fallback
+
+      // 4) Create the Ad
+      const createdAd = await fetchJson("/api/ads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tutor_id,
+          location_id,
+          instrument_id,
+          ad_description: newTutor.bio || "New tutor ad",
+          years_experience: Number(newTutor.experience || 0),
+          hourly_rate: Number(newTutor.hourlyRate || 0),
+          img_url: newTutor.image || null,
+          destroy_at: null,
+        }),
+      });
+
+      // 5) Create availability rows for the Ad
+      const slots = makeSlotsFromDays(newTutor.availability || [], 1);
+
+      // If you want availability even when no days selected, skip this check
+      if (slots.length > 0) {
+        await Promise.all(
+          slots.map((s) =>
+            fetchJson("/api/availability", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                user_id: 1, // demo user (must exist in users table if FK enforced)
+                ad_id: createdAd.ad_id,
+                start_time: s.start_time,
+                end_time: s.end_time,
+                is_booked: false,
+                user_capacity: 1,
+              }),
+            })
+          )
+        );
+      }
+
+      // 6) Add to UI immediately (so you can demo right away)
+      const mappedForUI = {
+        id: `ad-${createdAd.ad_id}`,
+        adId: createdAd.ad_id,
+
+        name: newTutor.name || `Tutor #${tutor_id}`,
+        suburb: chosenLocationName,
+
+        image:
+          createdAd.img_url ||
+          "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=600&h=400&fit=crop",
+
+        bio: createdAd.ad_description || "",
+        instruments: newTutor.instruments?.length
+          ? newTutor.instruments
+          : [chosenInstrumentName],
+
+        experience: createdAd.years_experience ?? 0,
+        hourlyRate: Number(createdAd.hourly_rate ?? 0),
+
+        rating: 5.0,
+        totalReviews: 0,
+      };
+
+      setTutors((prev) => [mappedForUI, ...prev]);
+    } catch (err) {
+      console.error("Create advertisement failed:", err);
+      alert(err?.message || "Failed to create advertisement");
+    }
   };
 
-  // Get unique instruments and suburbs from all tutors
+  // Filter options
   const availableInstruments = useMemo(() => {
     const instruments = new Set();
-    tutors.forEach((tutor) => {
-      (tutor.instruments || []).forEach((instrument) =>
-        instruments.add(instrument)
-      );
+    tutors.forEach((t) => {
+      (t.instruments || []).forEach((inst) => instruments.add(inst));
     });
     return Array.from(instruments).sort();
   }, [tutors]);
 
   const availableSuburbs = useMemo(() => {
     const suburbs = new Set();
-    tutors.forEach((tutor) => suburbs.add(tutor.suburb));
+    tutors.forEach((t) => {
+      if (t.suburb) suburbs.add(t.suburb);
+    });
     return Array.from(suburbs).sort();
   }, [tutors]);
 
-  // Filter tutors based on selected criteria
+  // Apply filters
   const filteredTutors = useMemo(() => {
     return tutors.filter((tutor) => {
-      // Filter by search query
+      // Search
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchesName = tutor.name.toLowerCase().includes(query);
-        const matchesBio = tutor.bio.toLowerCase().includes(query);
-        const matchesInstrument = tutor.instruments.some((inst) =>
-          inst.toLowerCase().includes(query)
+        const matchesName = String(tutor.name || "")
+          .toLowerCase()
+          .includes(query);
+        const matchesBio = String(tutor.bio || "")
+          .toLowerCase()
+          .includes(query);
+        const matchesInstrument = (tutor.instruments || []).some((inst) =>
+          String(inst).toLowerCase().includes(query)
         );
         if (!matchesName && !matchesBio && !matchesInstrument) return false;
       }
 
-      // Filter by instruments
+      // Instruments filter
       if (selectedInstruments.length > 0) {
-        const hasMatchingInstrument = tutor.instruments.some((instrument) =>
-          selectedInstruments.includes(instrument)
+        const hasMatching = (tutor.instruments || []).some((inst) =>
+          selectedInstruments.includes(inst)
         );
-        if (!hasMatchingInstrument) return false;
+        if (!hasMatching) return false;
       }
 
-      // Filter by suburb
+      // Suburb filter
       if (selectedSuburbs.length > 0) {
         if (!selectedSuburbs.includes(tutor.suburb)) return false;
       }
 
       return true;
     });
-  }, [selectedInstruments, selectedSuburbs, searchQuery, tutors]);
+  }, [tutors, searchQuery, selectedInstruments, selectedSuburbs]);
 
-  // Sort tutors
+  // Sort
   const sortedTutors = useMemo(() => {
     const tutorsCopy = [...filteredTutors];
 
     switch (sortBy) {
       case "rating":
-        return tutorsCopy.sort((a, b) => b.rating - a.rating);
+        return tutorsCopy.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
       case "price-low":
-        return tutorsCopy.sort((a, b) => a.hourlyRate - b.hourlyRate);
+        return tutorsCopy.sort(
+          (a, b) => (a.hourlyRate ?? 0) - (b.hourlyRate ?? 0)
+        );
       case "price-high":
-        return tutorsCopy.sort((a, b) => b.hourlyRate - a.hourlyRate);
+        return tutorsCopy.sort(
+          (a, b) => (b.hourlyRate ?? 0) - (a.hourlyRate ?? 0)
+        );
       case "experience":
-        return tutorsCopy.sort((a, b) => b.experience - a.experience);
+        return tutorsCopy.sort(
+          (a, b) => (b.experience ?? 0) - (a.experience ?? 0)
+        );
       default:
         return tutorsCopy;
     }
   }, [filteredTutors, sortBy]);
 
+  // Dashboard
   if (isLoggedIn) {
     return (
       <TutorDashboard
@@ -287,10 +398,8 @@ export default function App() {
               <FilterPanel
                 selectedInstruments={selectedInstruments}
                 selectedSuburbs={selectedSuburbs}
-                // selectedDays={selectedDays}
                 onInstrumentChange={setSelectedInstruments}
                 onSuburbChange={setSelectedSuburbs}
-                // onDayChange={setSelectedDays}
                 availableInstruments={availableInstruments}
                 availableSuburbs={availableSuburbs}
               />
@@ -330,11 +439,17 @@ export default function App() {
               </div>
             </div>
 
-            <div className="mb-6">
+            {/* Count + Loading */}
+            <div className="mb-6 flex items-center justify-between">
               <h2>
                 {sortedTutors.length}{" "}
                 {sortedTutors.length === 1 ? "tutor" : "tutors"} found
               </h2>
+              {loadingAds ? (
+                <span className="text-sm text-muted-foreground">
+                  Loading ads…
+                </span>
+              ) : null}
             </div>
 
             {sortedTutors.length === 0 ? (

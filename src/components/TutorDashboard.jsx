@@ -6,33 +6,17 @@ import { CreateAdvertisement } from "./CreateAdvertisement";
 
 export function TutorDashboard({ onLogout, onCreateAdvertisement }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleCreateAd = async (newTutor) => {
-  const res = await fetch("/api/ads", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      tutor_id: 1,              // demo tutor
-      instrument_id: 1,         // demo instrument
-      location_id: 1,
-      ad_description: newTutor.bio,
-      years_experience: newTutor.experience,
-      hourly_rate: newTutor.hourlyRate,
-      img_url: newTutor.image,
-    }),
-  });
-
-  const created = await res.json();
-
-  setTutors((prev) => [
-    {
-      ...newTutor,
-      id: created.ad_id,
-      adId: created.ad_id,
-    },
-    ...prev,
-  ]);
-};
+    try {
+      setSaving(true);
+      await onCreateAdvertisement(newTutor); // IMPORTANT: allow async
+      setShowCreateForm(false);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,45 +29,39 @@ export function TutorDashboard({ onLogout, onCreateAdvertisement }) {
               <div>
                 <h1 className="text-primary">Tutor Dashboard</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Manage your tutor profile and advertisements
+                  Create and manage your advertisement
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={onLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
+
+            <div className="flex items-center gap-2">
+              {!showCreateForm && (
+                <Button onClick={() => setShowCreateForm(true)} disabled={saving}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Advertisement
+                </Button>
+              )}
+              <Button variant="outline" onClick={onLogout} disabled={saving}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Content */}
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!showCreateForm ? (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2>Your Advertisements</h2>
-              <Button onClick={() => setShowCreateForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create New Advertisement
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="mb-2">No advertisements yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  Create your first advertisement to start connecting with
-                  students
-                </p>
-                <Button onClick={() => setShowCreateForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Advertisement
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardContent className="p-10 text-center">
+              <Music className="w-14 h-14 text-muted-foreground mx-auto mb-4" />
+              <h3 className="mb-2">Ready to post your ad?</h3>
+              <p className="text-muted-foreground">
+                Click “Create Advertisement” to publish your listing and add bookable times.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <CreateAdvertisement
             onSubmit={handleCreateAd}
