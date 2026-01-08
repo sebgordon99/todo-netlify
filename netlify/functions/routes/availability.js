@@ -4,13 +4,17 @@ import {
   getAvailabilityById,
   createAvailability,
   updateAvailability,
-  deleteAvailability
+  deleteAvailability,
+  bookAvailability
 } from "../controllers/availabilityController.js";
 
 const router = express.Router();
 
 // Get all availability records
-router.get("/", getAllAvailability);
+router.get("/", getAllAvailability)
+
+// book an availability
+router.post("/:id/book", bookAvailability);;
 
 // Get a single availability by ID
 router.get("/:id", getAvailabilityById);

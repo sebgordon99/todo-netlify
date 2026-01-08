@@ -112,21 +112,54 @@ export function ContactModal({ tutor, onClose }) {
             </p>
           ) : (
             <ul className="space-y-2">
-              {slots.map((s) => (
-                <li
-                  key={s.availability_id}
-                  className="rounded-md border px-3 py-2 text-sm"
-                >
-                  <div>{formatRange(s.start_time, s.end_time)}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {s.is_booked ? "Booked" : "Open"}
-                    {typeof s.user_capacity === "number"
-                      ? ` · Capacity: ${s.user_capacity}`
-                      : ""}
-                  </div>
-                </li>
-              ))}
-            </ul>
+  {slots.map((s) => (
+    <li
+      key={s.availability_id}
+      className="rounded-md border px-3 py-2 text-sm"
+    >
+      <div>{formatRange(s.start_time, s.end_time)}</div>
+
+      <div className="text-xs text-muted-foreground mt-1">
+        {s.is_booked ? "Booked" : "Open"}
+        {typeof s.user_capacity === "number" ? ` · Capacity: ${s.user_capacity}` : ""}
+      </div>
+
+      {/* ✅ Book button belongs INSIDE the map so "s" exists */}
+      {!s.is_booked && (
+        <Button
+          type="button"
+          className="mt-2"
+          onClick={async () => {
+            const res = await fetch(
+              `/api/availability/${s.availability_id}/book`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: 1 }), // demo user
+              }
+            );
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              alert(err.error || "Failed to book");
+              return;
+            }
+
+            const updated = await res.json();
+
+            setSlots((prev) =>
+              prev.map((x) =>
+                x.availability_id === updated.availability_id ? updated : x
+              )
+            );
+          }}
+        >
+          Book this time
+        </Button>
+      )}
+    </li>
+  ))}
+</ul>
           )}
         </div>
 
