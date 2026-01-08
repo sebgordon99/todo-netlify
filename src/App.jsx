@@ -89,7 +89,7 @@ function makeSlotsFromDays(days, countPerDay = 1) {
 export default function App() {
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [selectedSuburbs, setSelectedSuburbs] = useState([]);
-  const [selectedDays, setSelectedDays] = useState([]);
+  // const [selectedDays, setSelectedDays] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("rating");
   const [selectedTutor, setSelectedTutor] = useState(null);
@@ -224,17 +224,9 @@ export default function App() {
         if (!selectedSuburbs.includes(tutor.suburb)) return false;
       }
 
-      // Filter by availability
-      if (selectedDays.length > 0) {
-        const hasMatchingDay = tutor.availability.some((day) =>
-          selectedDays.includes(day)
-        );
-        if (!hasMatchingDay) return false;
-      }
-
       return true;
     });
-  }, [selectedInstruments, selectedSuburbs, selectedDays, searchQuery, tutors]);
+  }, [selectedInstruments, selectedSuburbs, searchQuery, tutors]);
 
   // Sort tutors
   const sortedTutors = useMemo(() => {
@@ -295,10 +287,10 @@ export default function App() {
               <FilterPanel
                 selectedInstruments={selectedInstruments}
                 selectedSuburbs={selectedSuburbs}
-                selectedDays={selectedDays}
+                // selectedDays={selectedDays}
                 onInstrumentChange={setSelectedInstruments}
                 onSuburbChange={setSelectedSuburbs}
-                onDayChange={setSelectedDays}
+                // onDayChange={setSelectedDays}
                 availableInstruments={availableInstruments}
                 availableSuburbs={availableSuburbs}
               />

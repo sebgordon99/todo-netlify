@@ -4,23 +4,11 @@ import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 
-const daysOfWeek = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
 export function FilterPanel({
   selectedInstruments,
   selectedSuburbs,
-  selectedDays,
   onInstrumentChange,
   onSuburbChange,
-  onDayChange,
   availableInstruments,
   availableSuburbs,
 }) {
@@ -40,24 +28,13 @@ export function FilterPanel({
     }
   };
 
-  const handleDayToggle = (day) => {
-    if (selectedDays.includes(day)) {
-      onDayChange(selectedDays.filter((d) => d !== day));
-    } else {
-      onDayChange([...selectedDays, day]);
-    }
-  };
-
   const clearAllFilters = () => {
     onInstrumentChange([]);
     onSuburbChange([]);
-    onDayChange([]);
   };
 
   const hasActiveFilters =
-    selectedInstruments.length > 0 ||
-    selectedSuburbs.length > 0 ||
-    selectedDays.length > 0;
+    selectedInstruments.length > 0 || selectedSuburbs.length > 0;
 
   return (
     <Card>
@@ -71,6 +48,7 @@ export function FilterPanel({
           )}
         </div>
       </CardHeader>
+
       <CardContent className="space-y-6">
         {/* Instruments Filter */}
         <div>
@@ -109,27 +87,6 @@ export function FilterPanel({
                 />
                 <Label htmlFor={`suburb-${suburb}`} className="cursor-pointer">
                   {suburb}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Availability Filter */}
-        <div>
-          <h3 className="mb-3">Availability</h3>
-          <div className="space-y-2">
-            {daysOfWeek.map((day) => (
-              <div key={day} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`day-${day}`}
-                  checked={selectedDays.includes(day)}
-                  onCheckedChange={() => handleDayToggle(day)}
-                />
-                <Label htmlFor={`day-${day}`} className="cursor-pointer">
-                  {day}
                 </Label>
               </div>
             ))}
