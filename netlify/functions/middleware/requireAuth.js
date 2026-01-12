@@ -1,4 +1,4 @@
-import Tutor from "../models/Tutor.js";
+import Tutor from "../models/tutorModel.js";
 
 export async function requireAuth(req, res, next) {
   try {

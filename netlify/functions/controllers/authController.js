@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import Tutor from "../models/Tutor.js";
+import Tutor from "../models/tutorModel.js";
 import { serialize } from "cookie";
 
 // Very simple cookie session

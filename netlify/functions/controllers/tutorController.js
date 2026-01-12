@@ -1,4 +1,4 @@
-import Tutor from "../models/Tutor.js";
+import Tutor from "../models/tutorModel.js";
 
 // Get all tutors
 export const getAllTutors = async (req, res) => {

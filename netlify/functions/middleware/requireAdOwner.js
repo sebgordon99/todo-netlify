@@ -1,4 +1,4 @@
-import Ad from "../models/ad.js";
+import Ad from "../models/adModel.js";
 
 export async function requireAdOwner(req, res, next) {
   try {

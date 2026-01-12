@@ -1,15 +1,15 @@
 import sequelize from "../config/database.js";
 
-import Ad from "./Ad.js";
-import Availability from "./Availability.js";
-import Location from "./Location.js";
-import Instrument from "./Instrument.js";
-import User from "./User.js";
-import Tutor from "./Tutor.js";
-import UserFavouriteAd from "./UserFavouriteAd.js";
-import UserFavouriteInstrument from "./UserFavouriteInstrument.js";
-import UserFavouriteLocation from "./UserFavouriteLocation.js";
-import UserFavouriteTutor from "./UserFavouriteTutor.js";
+import Ad from "./adModel.js";
+import Availability from "./availabilityModel.js";
+import Location from "./locationModel.js";
+import Instrument from "./instrumentModel.js";
+import User from "./userModel.js";
+import Tutor from "./tutorModel.js";
+import UserFavouriteAd from "./userFavouriteAdModel.js";
+import UserFavouriteInstrument from "./userFavouriteInstrumentModel.js";
+import UserFavouriteLocation from "./userFavouriteLocationModel.js";
+import UserFavouriteTutor from "./userFavouriteTutorModel.js";
 
 let dbInitialized = false;
 

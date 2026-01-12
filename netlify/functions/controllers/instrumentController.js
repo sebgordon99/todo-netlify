@@ -1,4 +1,4 @@
-import Instrument from "../models/Instrument.js";
+import Instrument from "../models/instrumentModel.js";
 
 // Get all instruments
 export const getAllInstruments = async (req, res) => {

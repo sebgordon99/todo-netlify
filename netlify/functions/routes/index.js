@@ -1,11 +1,11 @@
 import { Router } from "express";
-import ads from "./ads.js";
-import availability from "./availability.js";
-import locations from "./locations.js";
-import instruments from "./instruments.js";
-import users from "./users.js";
-import tutors from "./tutors.js";
-import auth from "./auth.js";
+import ads from "./adRoute.js";
+import availability from "./availabilityRoute.js";
+import locations from "./locationRoute.js";
+import instruments from "./instrumentRoute.js";
+import users from "./userRoute.js";
+import tutors from "./tutorRoute.js";
+import auth from "./authRoute.js";
 
 const router = Router();
 

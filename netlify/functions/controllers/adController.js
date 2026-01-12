@@ -1,8 +1,8 @@
-import Ad from "../models/Ad.js";
-import Availability from "../models/Availability.js";
-import Tutor from "../models/Tutor.js";
-import Location from "../models/Location.js";
-import Instrument from "../models/Instrument.js";
+import Ad from "../models/adModel.js";
+import Availability from "../models/availabilityModel.js";
+import Tutor from "../models/tutorModel.js";
+import Location from "../models/locationModel.js";
+import Instrument from "../models/instrumentModel.js";
 
 // Get all ads (with joined tutor/location/instrument)
 export const getAllAds = async (req, res) => {
