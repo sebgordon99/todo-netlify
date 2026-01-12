@@ -1,10 +1,10 @@
 import sequelize from "../config/database.js";
-import Location from "../models/Location.js";
-import Instrument from "../models/Instrument.js";
-import Tutor from "../models/Tutor.js";
-import Ad from "../models/ad.js";
-import Availability from "../models/Availability.js";
-import User from "../models/User.js";
+import Location from "../models/locationModel.js";
+import Instrument from "../models/instrumentModel.js";
+import Tutor from "../models/tutorModel.js";
+import Ad from "../models/adModel.js";
+import Availability from "../models/availabilityModel.js";
+import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 
 function pick(arr) {
