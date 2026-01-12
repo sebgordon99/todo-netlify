@@ -1,5 +1,5 @@
-import Availability from "../models/availability.js";
-import Ad from "../models/ad.js";
+import Availability from "../models/Availability.js";
+import Ad from "../models/Ad.js";
 
 //Helpers
 async function assertTutorOwnsAd({ tutorId, adId }) {

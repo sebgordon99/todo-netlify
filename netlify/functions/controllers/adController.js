@@ -1,4 +1,4 @@
-import Ad from "../models/ad.js";
+import Ad from "../models/Ad.js";
 import Availability from "../models/Availability.js";
 import Tutor from "../models/Tutor.js";
 import Location from "../models/Location.js";

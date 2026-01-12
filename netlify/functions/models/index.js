@@ -1,7 +1,7 @@
 import sequelize from "../config/database.js";
 
-import Ad from "./ad.js";
-import Availability from "./availability.js";
+import Ad from "./Ad.js";
+import Availability from "./Availability.js";
 import Location from "./Location.js";
 import Instrument from "./Instrument.js";
 import User from "./User.js";
