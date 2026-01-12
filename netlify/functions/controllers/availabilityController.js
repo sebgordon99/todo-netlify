@@ -1,106 +1,208 @@
 import Availability from "../models/Availability.js";
+import Ad from "../models/ad.js";
 
-// Get all availability
-export const getAllAvailability = async (req, res) => {
+/**
+ * Helpers
+ */
+async function assertTutorOwnsAd({ tutorId, adId }) {
+  const ad = await Ad.findByPk(adId);
+  if (!ad) {
+    const err = new Error("Ad not found");
+    err.status = 404;
+    throw err;
+  }
+
+  if (Number(ad.tutor_id) !== Number(tutorId)) {
+    const err = new Error("Forbidden");
+    err.status = 403;
+    throw err;
+  }
+
+  return ad;
+}
+
+/**
+ * PUBLIC: Get availability for a given ad (used by marketplace / contact modal)
+ * GET /api/availability/ad/:adId/public
+ */
+export const getAvailabilityForAdPublic = async (req, res) => {
   try {
-    const availabilities = await Availability.findAll({
-      order: [["availability_id", "DESC"]],
+    const adId = Number(req.params.adId);
+    if (!Number.isFinite(adId)) {
+      return res.status(400).json({ error: "Invalid ad id" });
+    }
+
+    const slots = await Availability.findAll({
+      where: { ad_id: adId },
+      order: [["start_time", "ASC"]],
     });
-    res.json(availabilities);
+
+    return res.json(slots);
   } catch (error) {
-    console.error("Error fetching availability:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching availability (public):", error);
+    return res.status(500).json({ error: error.message });
   }
 };
 
-// Get a single availability by ID
-export const getAvailabilityById = async (req, res) => {
+/**
+ * TUTOR: Get availability for one of MY ads
+ * GET /api/availability/ad/:adId
+ * requires requireAuth
+ */
+export const getAvailabilityForMyAd = async (req, res) => {
   try {
-    const { id } = req.params;
-    const availability = await Availability.findByPk(id);
+    const tutorId = req.tutorId;
+    const adId = Number(req.params.adId);
+    if (!Number.isFinite(adId)) {
+      return res.status(400).json({ error: "Invalid ad id" });
+    }
 
-    if (!availability)
-      return res.status(404).json({ error: "Availability not found" });
+    await assertTutorOwnsAd({ tutorId, adId });
 
-    res.json(availability);
+    const slots = await Availability.findAll({
+      where: { ad_id: adId },
+      order: [["start_time", "ASC"]],
+    });
+
+    return res.json(slots);
   } catch (error) {
-    console.error("Error fetching availability:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching availability (my ad):", error);
+    return res
+      .status(error.status || 500)
+      .json({ error: error.message || "Failed to fetch availability" });
   }
 };
 
-// Create a new availability
+/**
+ * TUTOR: Create a new slot for one of MY ads
+ * POST /api/availability
+ * requires requireAuth
+ * body: { ad_id, start_time, end_time, user_capacity? }
+ */
 export const createAvailability = async (req, res) => {
   try {
-    const { user_id, ad_id, start_time, end_time, is_booked, user_capacity } =
-      req.body;
+    const tutorId = req.tutorId;
 
-    if (!user_id || !ad_id || !start_time || !end_time) {
-      return res.status(400).json({
-        error: "user_id, ad_id, start_time, and end_time are required",
-      });
+    const { ad_id, start_time, end_time, user_capacity } = req.body;
+
+    const adId = Number(ad_id);
+    if (!Number.isFinite(adId)) {
+      return res.status(400).json({ error: "Invalid ad_id" });
+    }
+
+    if (!start_time || !end_time) {
+      return res
+        .status(400)
+        .json({ error: "ad_id, start_time, end_time are required" });
+    }
+
+    await assertTutorOwnsAd({ tutorId, adId });
+
+    // Optional: prevent duplicate exact slot
+    const existing = await Availability.findOne({
+      where: { ad_id: adId, start_time, end_time },
+    });
+    if (existing) {
+      return res.status(409).json({ error: "Slot already exists" });
     }
 
     const availability = await Availability.create({
-      user_id,
-      ad_id,
+      ad_id: adId,
+      // demo approach: keep a user_id, but long-term you'd make it nullable
+      user_id: 1,
       start_time,
       end_time,
-      is_booked: is_booked || false,
-      user_capacity: user_capacity || 1,
+      is_booked: false,
+      user_capacity: user_capacity ?? 1,
     });
 
-    res.status(201).json(availability);
+    return res.status(201).json(availability);
   } catch (error) {
     console.error("Error creating availability:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(error.status || 500).json({ error: error.message });
   }
 };
 
-// Update an availability
+/**
+ * TUTOR: Update a slot (only if it belongs to one of MY ads)
+ * PUT /api/availability/:id
+ * requires requireAuth
+ * body: { start_time?, end_time?, user_capacity? }
+ */
 export const updateAvailability = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { user_id, ad_id, start_time, end_time, is_booked, user_capacity } =
-      req.body;
+    const tutorId = req.tutorId;
+    const slotId = Number(req.params.id);
 
-    const availability = await Availability.findByPk(id);
-    if (!availability)
+    if (!Number.isFinite(slotId)) {
+      return res.status(400).json({ error: "Invalid availability id" });
+    }
+
+    const availability = await Availability.findByPk(slotId);
+    if (!availability) {
       return res.status(404).json({ error: "Availability not found" });
+    }
 
-    if (user_id !== undefined) availability.user_id = user_id;
-    if (ad_id !== undefined) availability.ad_id = ad_id;
+    // ownership check via Ad
+    await assertTutorOwnsAd({ tutorId, adId: availability.ad_id });
+
+    // don't allow editing booked slots (keeps logic simple for demo)
+    if (availability.is_booked) {
+      return res.status(400).json({ error: "Cannot edit a booked slot" });
+    }
+
+    const { start_time, end_time, user_capacity } = req.body;
+
     if (start_time !== undefined) availability.start_time = start_time;
     if (end_time !== undefined) availability.end_time = end_time;
-    if (is_booked !== undefined) availability.is_booked = is_booked;
     if (user_capacity !== undefined) availability.user_capacity = user_capacity;
 
     await availability.save();
-    res.json(availability);
+    return res.json(availability);
   } catch (error) {
     console.error("Error updating availability:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(error.status || 500).json({ error: error.message });
   }
 };
 
-// Delete an availability
+/**
+ * TUTOR: Delete a slot (only if it belongs to one of MY ads)
+ * DELETE /api/availability/:id
+ * requires requireAuth
+ */
 export const deleteAvailability = async (req, res) => {
   try {
-    const { id } = req.params;
-    const availability = await Availability.findByPk(id);
+    const tutorId = req.tutorId;
+    const slotId = Number(req.params.id);
 
-    if (!availability)
+    if (!Number.isFinite(slotId)) {
+      return res.status(400).json({ error: "Invalid availability id" });
+    }
+
+    const availability = await Availability.findByPk(slotId);
+    if (!availability) {
       return res.status(404).json({ error: "Availability not found" });
+    }
+
+    await assertTutorOwnsAd({ tutorId, adId: availability.ad_id });
+
+    if (availability.is_booked) {
+      return res.status(400).json({ error: "Cannot delete a booked slot" });
+    }
 
     await availability.destroy();
-    res.status(204).send();
+    return res.status(204).send();
   } catch (error) {
     console.error("Error deleting availability:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(error.status || 500).json({ error: error.message });
   }
 };
 
-// Book an availability
+/**
+ * PUBLIC: Book an availability slot (demo)
+ * POST /api/availability/:id/book
+ * body: { user_id? }
+ */
 export const bookAvailability = async (req, res) => {
   try {
     const slotId = Number(req.params.id);

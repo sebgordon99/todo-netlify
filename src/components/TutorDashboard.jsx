@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Music, LogOut, Plus, Pencil, Trash2, Calendar } from "lucide-react";
+import {
+  Music,
+  LogOut,
+  Plus,
+  Pencil,
+  Trash2,
+  Calendar,
+  Save,
+  X,
+} from "lucide-react";
 import { CreateAdvertisement } from "./CreateAdvertisement";
 
 async function fetchJson(url, options = {}) {
@@ -30,6 +39,26 @@ function formatSlot(iso) {
   }
 }
 
+// Convert ISO -> value for <input type="datetime-local">
+function isoToLocalInputValue(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+// Convert datetime-local value -> ISO string
+function localInputValueToIso(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  return d.toISOString();
+}
+
 export function TutorDashboard({ onLogout }) {
   const [me, setMe] = useState(null);
 
@@ -38,12 +67,19 @@ export function TutorDashboard({ onLogout }) {
   const [saving, setSaving] = useState(false);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingAd, setEditingAd] = useState(null); // store an ad object
+  const [editingAd, setEditingAd] = useState(null);
 
-  // availability view-only
+  // Availability management
   const [openAvailabilityFor, setOpenAvailabilityFor] = useState(null); // ad_id
   const [availabilityMap, setAvailabilityMap] = useState({}); // { [adId]: slots[] }
   const [loadingAvailFor, setLoadingAvailFor] = useState(null);
+
+  // inline slot edit state
+  const [editingSlotId, setEditingSlotId] = useState(null);
+  const [slotDraft, setSlotDraft] = useState({ start: "", end: "" });
+
+  // add slot state
+  const [newSlotDraft, setNewSlotDraft] = useState({ start: "", end: "" });
 
   // ---------- load session + ads ----------
   useEffect(() => {
@@ -51,15 +87,12 @@ export function TutorDashboard({ onLogout }) {
 
     async function boot() {
       try {
-        // 1. who is logged in?
         const tutor = await fetchJson("/api/auth/me");
         if (cancelled) return;
         setMe(tutor);
 
-        // 2. load ads for this tutor
         await loadMyAds(tutor.tutor_id, cancelled);
-      } catch (e) {
-        // If /me fails, user is not logged in
+      } catch {
         if (!cancelled) {
           setMe(null);
           setAds([]);
@@ -97,19 +130,14 @@ export function TutorDashboard({ onLogout }) {
 
   // ---------- helpers for instrument/location resolution ----------
   async function resolveInstrumentId(instrumentName) {
-    // safest: find by name from DB list
     const instruments = await fetchJson("/api/instruments");
     const list = Array.isArray(instruments) ? instruments : [];
     if (list.length === 0) return 1;
 
     const match = list.find(
       (i) =>
-        String(i.instrument_name || "")
-          .toLowerCase()
-          .trim() ===
-        String(instrumentName || "")
-          .toLowerCase()
-          .trim()
+        String(i.instrument_name || "").toLowerCase().trim() ===
+        String(instrumentName || "").toLowerCase().trim()
     );
     return match?.instrument_id ?? list[0].instrument_id;
   }
@@ -121,17 +149,13 @@ export function TutorDashboard({ onLogout }) {
 
     const match = list.find(
       (l) =>
-        String(l.location_name || "")
-          .toLowerCase()
-          .trim() ===
-        String(locationName || "")
-          .toLowerCase()
-          .trim()
+        String(l.location_name || "").toLowerCase().trim() ===
+        String(locationName || "").toLowerCase().trim()
     );
     return match?.location_id ?? list[0].location_id;
   }
 
-  // ---------- CREATE ----------
+  // ---------- CREATE AD ----------
   async function handleCreateAd(formData) {
     setSaving(true);
     try {
@@ -143,7 +167,6 @@ export function TutorDashboard({ onLogout }) {
       const instrument_id = await resolveInstrumentId(chosenInstrumentName);
       const location_id = await resolveLocationId(chosenLocationName);
 
-      // Create ad
       await fetchJson("/api/ads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -158,7 +181,6 @@ export function TutorDashboard({ onLogout }) {
         }),
       });
 
-      // Refresh list
       await loadMyAds(me.tutor_id);
       setShowCreateForm(false);
     } catch (e) {
@@ -169,7 +191,7 @@ export function TutorDashboard({ onLogout }) {
     }
   }
 
-  // ---------- EDIT ----------
+  // ---------- EDIT AD ----------
   async function handleSaveEdit(formData) {
     setSaving(true);
     try {
@@ -181,7 +203,6 @@ export function TutorDashboard({ onLogout }) {
       const instrument_id = await resolveInstrumentId(chosenInstrumentName);
       const location_id = await resolveLocationId(chosenLocationName);
 
-      // edit ONLY the ad fields (availability stays as-is)
       await fetchJson(`/api/ads/${editingAd.ad_id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -206,7 +227,7 @@ export function TutorDashboard({ onLogout }) {
     }
   }
 
-  // ---------- DELETE ----------
+  // ---------- DELETE AD ----------
   async function handleDeleteAd(ad) {
     const ok = confirm("Delete this ad? This cannot be undone.");
     if (!ok) return;
@@ -216,7 +237,6 @@ export function TutorDashboard({ onLogout }) {
       await fetchJson(`/api/ads/${ad.ad_id}`, { method: "DELETE" });
       await loadMyAds(me.tutor_id);
 
-      // close availability panel if it was open
       if (openAvailabilityFor === ad.ad_id) setOpenAvailabilityFor(null);
     } catch (e) {
       console.error(e);
@@ -226,22 +246,12 @@ export function TutorDashboard({ onLogout }) {
     }
   }
 
-  // ---------- VIEW AVAILABILITY (READ ONLY) ----------
-  async function toggleAvailability(ad) {
-    const adId = ad.ad_id;
-
-    if (openAvailabilityFor === adId) {
-      setOpenAvailabilityFor(null);
-      return;
-    }
-
-    setOpenAvailabilityFor(adId);
-
-    if (availabilityMap[adId]) return;
-
+  // ---------- AVAILABILITY: LOAD ----------
+  async function loadAvailabilityForAd(adId) {
     setLoadingAvailFor(adId);
     try {
-      const slots = await fetchJson(`/api/ads/${adId}/availability`);
+      // tutor-secure endpoint
+      const slots = await fetchJson(`/api/availability/ad/${adId}`);
       setAvailabilityMap((prev) => ({
         ...prev,
         [adId]: Array.isArray(slots) ? slots : [],
@@ -251,6 +261,140 @@ export function TutorDashboard({ onLogout }) {
       alert(e?.message || "Failed to load availability");
     } finally {
       setLoadingAvailFor(null);
+    }
+  }
+
+  async function toggleAvailability(ad) {
+    const adId = ad.ad_id;
+
+    if (openAvailabilityFor === adId) {
+      setOpenAvailabilityFor(null);
+      setEditingSlotId(null);
+      setSlotDraft({ start: "", end: "" });
+      return;
+    }
+
+    setOpenAvailabilityFor(adId);
+
+    // load if not present
+    if (!availabilityMap[adId]) {
+      await loadAvailabilityForAd(adId);
+    }
+  }
+
+  // ---------- AVAILABILITY: ADD ----------
+  async function handleAddSlot(adId) {
+    try {
+      if (!newSlotDraft.start || !newSlotDraft.end) {
+        alert("Please choose a start and end time.");
+        return;
+      }
+
+      const startIso = localInputValueToIso(newSlotDraft.start);
+      const endIso = localInputValueToIso(newSlotDraft.end);
+
+      if (!startIso || !endIso) {
+        alert("Invalid start/end.");
+        return;
+      }
+
+      if (new Date(endIso) <= new Date(startIso)) {
+        alert("End time must be after start time.");
+        return;
+      }
+
+      setSaving(true);
+
+      await fetchJson("/api/availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ad_id: adId,
+          start_time: startIso,
+          end_time: endIso,
+          user_capacity: 1,
+        }),
+      });
+
+      setNewSlotDraft({ start: "", end: "" });
+      await loadAvailabilityForAd(adId);
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Failed to add slot");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ---------- AVAILABILITY: EDIT ----------
+  function beginEditSlot(slot) {
+    setEditingSlotId(slot.availability_id);
+    setSlotDraft({
+      start: isoToLocalInputValue(slot.start_time),
+      end: isoToLocalInputValue(slot.end_time),
+    });
+  }
+
+  function cancelEditSlot() {
+    setEditingSlotId(null);
+    setSlotDraft({ start: "", end: "" });
+  }
+
+  async function saveEditSlot(adId, slotId) {
+    try {
+      if (!slotDraft.start || !slotDraft.end) {
+        alert("Please choose a start and end time.");
+        return;
+      }
+
+      const startIso = localInputValueToIso(slotDraft.start);
+      const endIso = localInputValueToIso(slotDraft.end);
+
+      if (new Date(endIso) <= new Date(startIso)) {
+        alert("End time must be after start time.");
+        return;
+      }
+
+      setSaving(true);
+
+      await fetchJson(`/api/availability/${slotId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start_time: startIso,
+          end_time: endIso,
+        }),
+      });
+
+      cancelEditSlot();
+      await loadAvailabilityForAd(adId);
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Failed to update slot");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ---------- AVAILABILITY: DELETE ----------
+  async function deleteSlot(adId, slotId, isBooked) {
+    if (isBooked) {
+      alert("Booked slots cannot be deleted.");
+      return;
+    }
+
+    const ok = confirm("Delete this time slot?");
+    if (!ok) return;
+
+    setSaving(true);
+    try {
+      await fetchJson(`/api/availability/${slotId}`, { method: "DELETE" });
+      await loadAvailabilityForAd(adId);
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Failed to delete slot");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -264,7 +408,6 @@ export function TutorDashboard({ onLogout }) {
       bio: ad.ad_description ?? "",
       image: ad.img_url ?? "",
       instruments: [ad.Instrument?.instrument_name].filter(Boolean),
-      // view-only availability, so not editing it
       availability: [],
       rating: 5.0,
       totalReviews: 0,
@@ -293,10 +436,7 @@ export function TutorDashboard({ onLogout }) {
 
             <div className="flex items-center gap-2">
               {!showCreateForm && !editingAd && (
-                <Button
-                  onClick={() => setShowCreateForm(true)}
-                  disabled={saving}
-                >
+                <Button onClick={() => setShowCreateForm(true)} disabled={saving}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Advertisement
                 </Button>
@@ -376,10 +516,8 @@ export function TutorDashboard({ onLogout }) {
                                 lessons
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {ad.Location?.location_name ||
-                                  "Unknown location"}{" "}
-                                • ${ad.hourly_rate}/hr • {ad.years_experience}{" "}
-                                yrs
+                                {ad.Location?.location_name || "Unknown location"} • $
+                                {ad.hourly_rate}/hr • {ad.years_experience} yrs
                               </div>
                               <p className="mt-2 text-sm">
                                 {ad.ad_description || "No description"}
@@ -403,7 +541,7 @@ export function TutorDashboard({ onLogout }) {
                               disabled={saving}
                             >
                               <Calendar className="w-4 h-4 mr-2" />
-                              Times
+                              Manage Times
                             </Button>
 
                             <Button
@@ -417,11 +555,56 @@ export function TutorDashboard({ onLogout }) {
                           </div>
                         </div>
 
-                        {/* Availability panel (view-only) */}
+                        {/* Availability panel (editable) */}
                         {isOpen && (
                           <div className="mt-4 border-t pt-4">
                             <div className="font-medium mb-2">
-                              Availability (view only)
+                              Availability (edit on dashboard)
+                            </div>
+
+                            {/* Add slot row */}
+                            <div className="flex flex-col md:flex-row gap-2 md:items-end mb-4">
+                              <div className="flex-1">
+                                <label className="text-sm text-muted-foreground">
+                                  Start
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={newSlotDraft.start}
+                                  onChange={(e) =>
+                                    setNewSlotDraft((p) => ({
+                                      ...p,
+                                      start: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                                />
+                              </div>
+
+                              <div className="flex-1">
+                                <label className="text-sm text-muted-foreground">
+                                  End
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={newSlotDraft.end}
+                                  onChange={(e) =>
+                                    setNewSlotDraft((p) => ({
+                                      ...p,
+                                      end: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                                />
+                              </div>
+
+                              <Button
+                                onClick={() => handleAddSlot(ad.ad_id)}
+                                disabled={saving}
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Slot
+                              </Button>
                             </div>
 
                             {isAvailLoading ? (
@@ -434,23 +617,123 @@ export function TutorDashboard({ onLogout }) {
                               </div>
                             ) : (
                               <ul className="space-y-2 text-sm">
-                                {slots.map((s) => (
-                                  <li
-                                    key={
-                                      s.availability_id ||
-                                      `${s.start_time}-${s.end_time}`
-                                    }
-                                    className="flex items-center justify-between rounded-md border p-2"
-                                  >
-                                    <span>
-                                      {formatSlot(s.start_time)} →{" "}
-                                      {formatSlot(s.end_time)}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                      {s.is_booked ? "Booked" : "Open"}
-                                    </span>
-                                  </li>
-                                ))}
+                                {slots.map((s) => {
+                                  const slotId = s.availability_id;
+                                  const isEditing = editingSlotId === slotId;
+
+                                  return (
+                                    <li
+                                      key={slotId || `${s.start_time}-${s.end_time}`}
+                                      className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-md border p-3"
+                                    >
+                                      <div className="flex-1">
+                                        {!isEditing ? (
+                                          <div className="flex flex-col">
+                                            <span>
+                                              {formatSlot(s.start_time)} →{" "}
+                                              {formatSlot(s.end_time)}
+                                            </span>
+                                            <span className="text-muted-foreground">
+                                              {s.is_booked ? "Booked" : "Open"}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            <div>
+                                              <label className="text-xs text-muted-foreground">
+                                                Start
+                                              </label>
+                                              <input
+                                                type="datetime-local"
+                                                value={slotDraft.start}
+                                                onChange={(e) =>
+                                                  setSlotDraft((p) => ({
+                                                    ...p,
+                                                    start: e.target.value,
+                                                  }))
+                                                }
+                                                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="text-xs text-muted-foreground">
+                                                End
+                                              </label>
+                                              <input
+                                                type="datetime-local"
+                                                value={slotDraft.end}
+                                                onChange={(e) =>
+                                                  setSlotDraft((p) => ({
+                                                    ...p,
+                                                    end: e.target.value,
+                                                  }))
+                                                }
+                                                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="flex gap-2 justify-end">
+                                        {!isEditing ? (
+                                          <>
+                                            <Button
+                                              variant="outline"
+                                              onClick={() => beginEditSlot(s)}
+                                              disabled={saving || s.is_booked}
+                                              title={
+                                                s.is_booked
+                                                  ? "Booked slots cannot be edited"
+                                                  : "Edit slot"
+                                              }
+                                            >
+                                              <Pencil className="w-4 h-4 mr-2" />
+                                              Edit
+                                            </Button>
+
+                                            <Button
+                                              variant="destructive"
+                                              onClick={() =>
+                                                deleteSlot(ad.ad_id, slotId, s.is_booked)
+                                              }
+                                              disabled={saving || s.is_booked}
+                                              title={
+                                                s.is_booked
+                                                  ? "Booked slots cannot be deleted"
+                                                  : "Delete slot"
+                                              }
+                                            >
+                                              <Trash2 className="w-4 h-4 mr-2" />
+                                              Delete
+                                            </Button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Button
+                                              onClick={() =>
+                                                saveEditSlot(ad.ad_id, slotId)
+                                              }
+                                              disabled={saving}
+                                            >
+                                              <Save className="w-4 h-4 mr-2" />
+                                              Save
+                                            </Button>
+
+                                            <Button
+                                              variant="outline"
+                                              onClick={cancelEditSlot}
+                                              disabled={saving}
+                                            >
+                                              <X className="w-4 h-4 mr-2" />
+                                              Cancel
+                                            </Button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
                               </ul>
                             )}
                           </div>

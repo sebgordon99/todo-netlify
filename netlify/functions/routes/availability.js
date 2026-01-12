@@ -1,31 +1,33 @@
 import express from "express";
 import {
-  getAllAvailability,
-  getAvailabilityById,
   createAvailability,
   updateAvailability,
   deleteAvailability,
   bookAvailability,
+  getAvailabilityForMyAd,
+  getAvailabilityForAdPublic,
 } from "../controllers/availabilityController.js";
+
+import { requireAuth } from "../middleware/requireAuth.js";
 
 const router = express.Router();
 
-// Get all availability records
-router.get("/", getAllAvailability);
+/**
+ * Tutor-only:
+ * - view slots for one of your ads
+ * - create/edit/delete slots
+ */
+router.get("/ad/:adId", requireAuth, getAvailabilityForMyAd);
+router.post("/", requireAuth, createAvailability);
+router.put("/:id", requireAuth, updateAvailability);
+router.delete("/:id", requireAuth, deleteAvailability);
 
-// book an availability
+/**
+ * Public:
+ * - book a slot (demo)
+ * - public view slots by ad (optional helper endpoint)
+ */
 router.post("/:id/book", bookAvailability);
-
-// Get a single availability by ID
-router.get("/:id", getAvailabilityById);
-
-// Create a new availability
-router.post("/", createAvailability);
-
-// Update an availability by ID
-router.put("/:id", updateAvailability);
-
-// Delete an availability by ID
-router.delete("/:id", deleteAvailability);
+router.get("/ad/:adId/public", getAvailabilityForAdPublic);
 
 export default router;
