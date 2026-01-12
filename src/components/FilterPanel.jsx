@@ -49,13 +49,19 @@ export function FilterPanel({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      {/* Slightly more overall spacing between sections */}
+      <CardContent className="space-y-8">
         {/* Instruments Filter */}
         <div>
-          <h3 className="mb-3">Instruments</h3>
-          <div className="space-y-2">
+          <h3 className="mb-4">Instruments</h3>
+
+          {/* Slightly more spacing between items */}
+          <div className="space-y-3">
             {availableInstruments.map((instrument) => (
-              <div key={instrument} className="flex items-center space-x-2">
+              <div
+                key={instrument}
+                className="flex items-center gap-3 py-0.5"
+              >
                 <Checkbox
                   id={`instrument-${instrument}`}
                   checked={selectedInstruments.includes(instrument)}
@@ -63,7 +69,7 @@ export function FilterPanel({
                 />
                 <Label
                   htmlFor={`instrument-${instrument}`}
-                  className="cursor-pointer"
+                  className="cursor-pointer leading-none"
                 >
                   {instrument}
                 </Label>
@@ -72,20 +78,25 @@ export function FilterPanel({
           </div>
         </div>
 
-        <Separator />
+        {/* a bit more separation */}
+        <Separator className="my-1" />
 
         {/* Suburbs Filter */}
         <div>
-          <h3 className="mb-3">Location</h3>
-          <div className="space-y-2">
+          <h3 className="mb-4">Location</h3>
+
+          <div className="space-y-3">
             {availableSuburbs.map((suburb) => (
-              <div key={suburb} className="flex items-center space-x-2">
+              <div key={suburb} className="flex items-center gap-3 py-0.5">
                 <Checkbox
                   id={`suburb-${suburb}`}
                   checked={selectedSuburbs.includes(suburb)}
                   onCheckedChange={() => handleSuburbToggle(suburb)}
                 />
-                <Label htmlFor={`suburb-${suburb}`} className="cursor-pointer">
+                <Label
+                  htmlFor={`suburb-${suburb}`}
+                  className="cursor-pointer leading-none"
+                >
                   {suburb}
                 </Label>
               </div>
