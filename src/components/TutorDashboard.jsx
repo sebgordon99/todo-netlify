@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
@@ -24,39 +24,107 @@ async function fetchJson(url, options = {}) {
   return data;
 }
 
-// For showing availability nicely
-function formatSlot(iso) {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
+// ---------- Availability dropdown helpers ----------
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const DAY_INDEX = {
+  Monday: 0,
+  Tuesday: 1,
+  Wednesday: 2,
+  Thursday: 3,
+  Friday: 4,
+  Saturday: 5,
+  Sunday: 6,
+};
+
+// 6:00 -> 22:00 every 30 mins (adjust if you want wider)
+const TIME_OPTIONS = (() => {
+  const out = [];
+  for (let h = 6; h <= 22; h++) {
+    for (const m of [0, 30]) {
+      if (h === 22 && m === 30) continue;
+      out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
   }
+  return out;
+})();
+
+const DURATION_OPTIONS = [30, 60, 90, 120, 150, 180];
+
+function dayNameFromDate(date) {
+  // JS: Sunday=0 ... Saturday=6
+  const js = date.getDay();
+  const idx = (js + 6) % 7; // convert so Monday=0
+  return DAYS[idx];
 }
 
-// Convert ISO -> value for <input type="datetime-local">
-function isoToLocalInputValue(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  const mm = pad(d.getMonth() + 1);
-  const dd = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const min = pad(d.getMinutes());
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+function timeFromDate(date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes()
+  ).padStart(2, "0")}`;
 }
 
-// Convert datetime-local value -> ISO string
-function localInputValueToIso(v) {
-  if (!v) return null;
-  const d = new Date(v);
-  return d.toISOString();
+function minutesBetween(aIso, bIso) {
+  return Math.round((new Date(bIso) - new Date(aIso)) / 60000);
+}
+
+function applyTimeToDate(date, hhmm) {
+  const [h, m] = String(hhmm).split(":").map(Number);
+  const d = new Date(date);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+// Move date to the target weekday, staying close to the base date
+function shiftDateToWeekday(baseDate, targetDayName) {
+  const base = new Date(baseDate);
+  const current = DAY_INDEX[dayNameFromDate(base)];
+  const target = DAY_INDEX[targetDayNameNameSafe(targetDayName)];
+
+  // Move forward/back within the week to the target
+  let diff = target - current;
+  // choose the shorter direction
+  if (diff > 3) diff -= 7;
+  if (diff < -3) diff += 7;
+
+  const d = new Date(base);
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function targetDayNameNameSafe(day) {
+  return DAYS.includes(day) ? day : "Monday";
+}
+
+// For adding: next occurrence from "now" for chosen weekday
+function nextOccurrence(dayName) {
+  const now = new Date();
+  const nowIdx = DAY_INDEX[dayNameFromDate(now)];
+  const targetIdx = DAY_INDEX[targetDayNameNameSafe(dayName)];
+  let diff = targetIdx - nowIdx;
+  if (diff < 0) diff += 7;
+  // if same day, still allow "today" (we’ll set time after; if time already passed you can improve later)
+  const d = new Date(now);
+  d.setDate(d.getDate() + diff);
+  d.setSeconds(0, 0);
+  return d;
+}
+
+// Display simplified slot label
+function slotLabel(slot) {
+  const s = new Date(slot.start_time);
+  const day = dayNameFromDate(s);
+  const time = timeFromDate(s);
+  const dur = minutesBetween(slot.start_time, slot.end_time);
+  return `${day} ${time} · ${dur} min`;
 }
 
 export function TutorDashboard({ onLogout }) {
@@ -76,10 +144,18 @@ export function TutorDashboard({ onLogout }) {
 
   // inline slot edit state
   const [editingSlotId, setEditingSlotId] = useState(null);
-  const [slotDraft, setSlotDraft] = useState({ start: "", end: "" });
+  const [slotDraft, setSlotDraft] = useState({
+    day: "Monday",
+    time: "18:00",
+    duration: 60,
+  });
 
   // add slot state
-  const [newSlotDraft, setNewSlotDraft] = useState({ start: "", end: "" });
+  const [newSlotDraft, setNewSlotDraft] = useState({
+    day: "Monday",
+    time: "18:00",
+    duration: 60,
+  });
 
   // ---------- load session + ads ----------
   useEffect(() => {
@@ -109,16 +185,7 @@ export function TutorDashboard({ onLogout }) {
   async function loadMyAds(tutor_id, cancelledFlag = false) {
     setLoadingAds(true);
     try {
-      let mine = null;
-      try {
-        mine = await fetchJson("/api/ads/mine");
-      } catch {
-        const all = await fetchJson("/api/ads");
-        mine = (Array.isArray(all) ? all : []).filter(
-          (a) => String(a.tutor_id) === String(tutor_id)
-        );
-      }
-
+      const mine = await fetchJson("/api/ads/mine");
       if (!cancelledFlag) setAds(Array.isArray(mine) ? mine : []);
     } catch (e) {
       console.error("Failed to load tutor ads:", e);
@@ -250,8 +317,8 @@ export function TutorDashboard({ onLogout }) {
   async function loadAvailabilityForAd(adId) {
     setLoadingAvailFor(adId);
     try {
-      // tutor-secure endpoint
-      const slots = await fetchJson(`/api/availability/ad/${adId}`);
+      // Use the same endpoint as ContactModal (already exists)
+      const slots = await fetchJson(`/api/ads/${adId}/availability`);
       setAvailabilityMap((prev) => ({
         ...prev,
         [adId]: Array.isArray(slots) ? slots : [],
@@ -270,13 +337,11 @@ export function TutorDashboard({ onLogout }) {
     if (openAvailabilityFor === adId) {
       setOpenAvailabilityFor(null);
       setEditingSlotId(null);
-      setSlotDraft({ start: "", end: "" });
       return;
     }
 
     setOpenAvailabilityFor(adId);
 
-    // load if not present
     if (!availabilityMap[adId]) {
       await loadAvailabilityForAd(adId);
     }
@@ -285,38 +350,25 @@ export function TutorDashboard({ onLogout }) {
   // ---------- AVAILABILITY: ADD ----------
   async function handleAddSlot(adId) {
     try {
-      if (!newSlotDraft.start || !newSlotDraft.end) {
-        alert("Please choose a start and end time.");
-        return;
-      }
-
-      const startIso = localInputValueToIso(newSlotDraft.start);
-      const endIso = localInputValueToIso(newSlotDraft.end);
-
-      if (!startIso || !endIso) {
-        alert("Invalid start/end.");
-        return;
-      }
-
-      if (new Date(endIso) <= new Date(startIso)) {
-        alert("End time must be after start time.");
-        return;
-      }
-
       setSaving(true);
+
+      // Next occurrence of selected weekday, then set chosen time
+      let start = nextOccurrence(newSlotDraft.day);
+      start = applyTimeToDate(start, newSlotDraft.time);
+
+      const end = new Date(start.getTime() + newSlotDraft.duration * 60000);
 
       await fetchJson("/api/availability", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ad_id: adId,
-          start_time: startIso,
-          end_time: endIso,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
           user_capacity: 1,
         }),
       });
 
-      setNewSlotDraft({ start: "", end: "" });
       await loadAvailabilityForAd(adId);
     } catch (e) {
       console.error(e);
@@ -328,41 +380,39 @@ export function TutorDashboard({ onLogout }) {
 
   // ---------- AVAILABILITY: EDIT ----------
   function beginEditSlot(slot) {
+    const s = new Date(slot.start_time);
+    const e = new Date(slot.end_time);
+
     setEditingSlotId(slot.availability_id);
     setSlotDraft({
-      start: isoToLocalInputValue(slot.start_time),
-      end: isoToLocalInputValue(slot.end_time),
+      day: dayNameFromDate(s),
+      time: timeFromDate(s),
+      duration: Math.max(30, minutesBetween(slot.start_time, slot.end_time)),
     });
   }
 
   function cancelEditSlot() {
     setEditingSlotId(null);
-    setSlotDraft({ start: "", end: "" });
   }
 
-  async function saveEditSlot(adId, slotId) {
+  async function saveEditSlot(adId, slot) {
     try {
-      if (!slotDraft.start || !slotDraft.end) {
-        alert("Please choose a start and end time.");
-        return;
-      }
-
-      const startIso = localInputValueToIso(slotDraft.start);
-      const endIso = localInputValueToIso(slotDraft.end);
-
-      if (new Date(endIso) <= new Date(startIso)) {
-        alert("End time must be after start time.");
-        return;
-      }
-
       setSaving(true);
 
-      await fetchJson(`/api/availability/${slotId}`, {
+      // Keep this slot in the same general week as its original start_time
+      const base = new Date(slot.start_time);
+
+      let start = shiftDateToWeekday(base, slotDraft.day);
+      start = applyTimeToDate(start, slotDraft.time);
+
+      const end = new Date(start.getTime() + slotDraft.duration * 60000);
+
+      await fetchJson(`/api/availability/${slot.availability_id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          start_time: startIso,
-          end_time: endIso,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
         }),
       });
 
@@ -377,8 +427,8 @@ export function TutorDashboard({ onLogout }) {
   }
 
   // ---------- AVAILABILITY: DELETE ----------
-  async function deleteSlot(adId, slotId, isBooked) {
-    if (isBooked) {
+  async function deleteSlot(adId, slot) {
+    if (slot.is_booked) {
       alert("Booked slots cannot be deleted.");
       return;
     }
@@ -388,7 +438,9 @@ export function TutorDashboard({ onLogout }) {
 
     setSaving(true);
     try {
-      await fetchJson(`/api/availability/${slotId}`, { method: "DELETE" });
+      await fetchJson(`/api/availability/${slot.availability_id}`, {
+        method: "DELETE",
+      });
       await loadAvailabilityForAd(adId);
     } catch (e) {
       console.error(e);
@@ -436,7 +488,10 @@ export function TutorDashboard({ onLogout }) {
 
             <div className="flex items-center gap-2">
               {!showCreateForm && !editingAd && (
-                <Button onClick={() => setShowCreateForm(true)} disabled={saving}>
+                <Button
+                  onClick={() => setShowCreateForm(true)}
+                  disabled={saving}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Advertisement
                 </Button>
@@ -516,8 +571,10 @@ export function TutorDashboard({ onLogout }) {
                                 lessons
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {ad.Location?.location_name || "Unknown location"} • $
-                                {ad.hourly_rate}/hr • {ad.years_experience} yrs
+                                {ad.Location?.location_name ||
+                                  "Unknown location"}{" "}
+                                • ${ad.hourly_rate}/hr • {ad.years_experience}{" "}
+                                yrs
                               </div>
                               <p className="mt-2 text-sm">
                                 {ad.ad_description || "No description"}
@@ -526,15 +583,17 @@ export function TutorDashboard({ onLogout }) {
                           </div>
 
                           <div className="flex gap-2 md:justify-end">
+                            {/* ✅ Ad editing is back */}
                             <Button
                               variant="outline"
                               onClick={() => setEditingAd(ad)}
                               disabled={saving}
                             >
                               <Pencil className="w-4 h-4 mr-2" />
-                              Edit
+                              Edit Ad
                             </Button>
 
+                            {/* ✅ Times management stays dropdown-based */}
                             <Button
                               variant="outline"
                               onClick={() => toggleAvailability(ad)}
@@ -555,47 +614,79 @@ export function TutorDashboard({ onLogout }) {
                           </div>
                         </div>
 
-                        {/* Availability panel (editable) */}
+                        {/* Availability panel (editable, simplified UI) */}
                         {isOpen && (
-                          <div className="mt-4 border-t pt-4">
-                            <div className="font-medium mb-2">
-                              Availability (edit on dashboard)
+                          <div className="mt-4 border-t pt-4 space-y-3">
+                            <div className="font-medium">
+                              Availability (day/time/duration)
                             </div>
 
                             {/* Add slot row */}
-                            <div className="flex flex-col md:flex-row gap-2 md:items-end mb-4">
+                            <div className="flex flex-col md:flex-row gap-2 md:items-end">
                               <div className="flex-1">
                                 <label className="text-sm text-muted-foreground">
-                                  Start
+                                  Day
                                 </label>
-                                <input
-                                  type="datetime-local"
-                                  value={newSlotDraft.start}
+                                <select
+                                  value={newSlotDraft.day}
                                   onChange={(e) =>
                                     setNewSlotDraft((p) => ({
                                       ...p,
-                                      start: e.target.value,
+                                      day: e.target.value,
                                     }))
                                   }
                                   className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                                />
+                                >
+                                  {DAYS.map((d) => (
+                                    <option key={d} value={d}>
+                                      {d}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
 
                               <div className="flex-1">
                                 <label className="text-sm text-muted-foreground">
-                                  End
+                                  Start time
                                 </label>
-                                <input
-                                  type="datetime-local"
-                                  value={newSlotDraft.end}
+                                <select
+                                  value={newSlotDraft.time}
                                   onChange={(e) =>
                                     setNewSlotDraft((p) => ({
                                       ...p,
-                                      end: e.target.value,
+                                      time: e.target.value,
                                     }))
                                   }
                                   className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                                />
+                                >
+                                  {TIME_OPTIONS.map((t) => (
+                                    <option key={t} value={t}>
+                                      {t}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="flex-1">
+                                <label className="text-sm text-muted-foreground">
+                                  Duration
+                                </label>
+                                <select
+                                  value={newSlotDraft.duration}
+                                  onChange={(e) =>
+                                    setNewSlotDraft((p) => ({
+                                      ...p,
+                                      duration: Number(e.target.value),
+                                    }))
+                                  }
+                                  className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                                >
+                                  {DURATION_OPTIONS.map((d) => (
+                                    <option key={d} value={d}>
+                                      {d} min
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
 
                               <Button
@@ -618,58 +709,90 @@ export function TutorDashboard({ onLogout }) {
                             ) : (
                               <ul className="space-y-2 text-sm">
                                 {slots.map((s) => {
-                                  const slotId = s.availability_id;
-                                  const isEditing = editingSlotId === slotId;
+                                  const isEditing =
+                                    editingSlotId === s.availability_id;
 
                                   return (
                                     <li
-                                      key={slotId || `${s.start_time}-${s.end_time}`}
+                                      key={s.availability_id}
                                       className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-md border p-3"
                                     >
                                       <div className="flex-1">
                                         {!isEditing ? (
-                                          <div className="flex flex-col">
-                                            <span>
-                                              {formatSlot(s.start_time)} →{" "}
-                                              {formatSlot(s.end_time)}
-                                            </span>
-                                            <span className="text-muted-foreground">
+                                          <div className="flex items-center justify-between gap-3">
+                                            <div>{slotLabel(s)}</div>
+                                            <div className="text-muted-foreground">
                                               {s.is_booked ? "Booked" : "Open"}
-                                            </span>
+                                            </div>
                                           </div>
                                         ) : (
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                             <div>
                                               <label className="text-xs text-muted-foreground">
-                                                Start
+                                                Day
                                               </label>
-                                              <input
-                                                type="datetime-local"
-                                                value={slotDraft.start}
+                                              <select
+                                                value={slotDraft.day}
                                                 onChange={(e) =>
                                                   setSlotDraft((p) => ({
                                                     ...p,
-                                                    start: e.target.value,
+                                                    day: e.target.value,
                                                   }))
                                                 }
                                                 className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                                              />
+                                              >
+                                                {DAYS.map((d) => (
+                                                  <option key={d} value={d}>
+                                                    {d}
+                                                  </option>
+                                                ))}
+                                              </select>
                                             </div>
+
                                             <div>
                                               <label className="text-xs text-muted-foreground">
-                                                End
+                                                Start time
                                               </label>
-                                              <input
-                                                type="datetime-local"
-                                                value={slotDraft.end}
+                                              <select
+                                                value={slotDraft.time}
                                                 onChange={(e) =>
                                                   setSlotDraft((p) => ({
                                                     ...p,
-                                                    end: e.target.value,
+                                                    time: e.target.value,
                                                   }))
                                                 }
                                                 className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                                              />
+                                              >
+                                                {TIME_OPTIONS.map((t) => (
+                                                  <option key={t} value={t}>
+                                                    {t}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            </div>
+
+                                            <div>
+                                              <label className="text-xs text-muted-foreground">
+                                                Duration
+                                              </label>
+                                              <select
+                                                value={slotDraft.duration}
+                                                onChange={(e) =>
+                                                  setSlotDraft((p) => ({
+                                                    ...p,
+                                                    duration: Number(
+                                                      e.target.value
+                                                    ),
+                                                  }))
+                                                }
+                                                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                                              >
+                                                {DURATION_OPTIONS.map((d) => (
+                                                  <option key={d} value={d}>
+                                                    {d} min
+                                                  </option>
+                                                ))}
+                                              </select>
                                             </div>
                                           </div>
                                         )}
@@ -694,9 +817,7 @@ export function TutorDashboard({ onLogout }) {
 
                                             <Button
                                               variant="destructive"
-                                              onClick={() =>
-                                                deleteSlot(ad.ad_id, slotId, s.is_booked)
-                                              }
+                                              onClick={() => deleteSlot(ad.ad_id, s)}
                                               disabled={saving || s.is_booked}
                                               title={
                                                 s.is_booked
@@ -712,7 +833,7 @@ export function TutorDashboard({ onLogout }) {
                                           <>
                                             <Button
                                               onClick={() =>
-                                                saveEditSlot(ad.ad_id, slotId)
+                                                saveEditSlot(ad.ad_id, s)
                                               }
                                               disabled={saving}
                                             >

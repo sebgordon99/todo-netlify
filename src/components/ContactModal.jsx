@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,18 +18,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { mockAvailabilityByAdId } from "../data/mockAvailability";
-import { getSlotsForAd, bookSlot } from "../data/availabilityStore";
 import { sendTableEmail } from "./SendMail";
 
-function formatRange(start, end) {
-  try {
-    const s = new Date(start);
-    const e = new Date(end);
-    return `${s.toLocaleString()} – ${e.toLocaleString()}`;
-  } catch {
-    return `${start} – ${end}`;
-  }
+// Same weekday ordering you want users to see
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const DAY_INDEX = {
+  Monday: 0,
+  Tuesday: 1,
+  Wednesday: 2,
+  Thursday: 3,
+  Friday: 4,
+  Saturday: 5,
+  Sunday: 6,
+};
+
+function dayNameFromDate(date) {
+  const js = date.getDay();
+  const idx = (js + 6) % 7; // Monday=0
+  return DAYS[idx];
+}
+
+function timeFromDate(date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes()
+  ).padStart(2, "0")}`;
+}
+
+function minutesBetween(aIso, bIso) {
+  return Math.round((new Date(bIso) - new Date(aIso)) / 60000);
 }
 
 export function ContactModal({ tutor, onClose }) {
@@ -69,20 +94,73 @@ export function ContactModal({ tutor, onClose }) {
     };
   }, [tutor?.adId]);
 
+  const grouped = useMemo(() => {
+    const out = {};
+    for (const s of slots) {
+      const start = new Date(s.start_time);
+      const day = dayNameFromDate(start);
+
+      if (!out[day]) out[day] = [];
+      out[day].push({
+        ...s,
+        _day: day,
+        _time: timeFromDate(start),
+        _dur: minutesBetween(s.start_time, s.end_time),
+      });
+    }
+
+    // sort within each day by start_time
+    for (const day of Object.keys(out)) {
+      out[day].sort(
+        (a, b) => new Date(a.start_time) - new Date(b.start_time)
+      );
+    }
+
+    return out;
+  }, [slots]);
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    sendTableEmail(formData.email, formData.message)
+
+    // Keep your existing email send
+    sendTableEmail(formData.email, formData.message);
+
     alert(
       `Message sent to ${tutor.name}!\n\nYour details:\nName: ${formData.name}\nEmail: ${formData.email}\nInstrument: ${formData.instrument}`
     );
     onClose();
   };
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  async function book(slotId) {
+    try {
+      const res = await fetch(`/api/availability/${slotId}/book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: 1 }), // demo user
+      });
 
+      const payload = await res.json().catch(() => ({}));
 
+      if (!res.ok) {
+        alert(payload.error || "Failed to book");
+        return;
+      }
+
+      // update local state for that slot
+      setSlots((prev) =>
+        prev.map((x) =>
+          x.availability_id === payload.availability_id ? payload : x
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to book (network/server error)");
+    }
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -95,13 +173,10 @@ export function ContactModal({ tutor, onClose }) {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Availability section */}
+        {/* Availability section (simplified but with booking) */}
         <div className="space-y-2 rounded-md border p-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium">Available times</h4>
-            {!tutor?.adId ? (
-              <span className="text-xs text-muted-foreground">No ad id</span>
-            ) : null}
           </div>
 
           {loading ? (
@@ -111,65 +186,47 @@ export function ContactModal({ tutor, onClose }) {
               No availability posted yet.
             </p>
           ) : (
-            <ul className="space-y-2">
-              {slots.map((s) => (
-                <li
-                  key={s.availability_id}
-                  className="rounded-md border px-3 py-2 text-sm"
-                >
-                  <div>{formatRange(s.start_time, s.end_time)}</div>
+            <div className="space-y-3">
+              {DAYS.filter((d) => grouped[d]?.length).map((day) => (
+                <div key={day} className="rounded-md border px-3 py-2">
+                  <div className="text-sm font-medium mb-2">{day}</div>
 
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {s.is_booked ? "Booked" : "Open"}
-                    {typeof s.user_capacity === "number"
-                      ? ` · Capacity: ${s.user_capacity}`
-                      : ""}
+                  <div className="space-y-2">
+                    {grouped[day].map((s) => (
+                      <div
+                        key={s.availability_id}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <div>
+                          {s._time} · {s._dur} min{" "}
+                          <span className="text-xs text-muted-foreground">
+                            ({s.is_booked ? "Booked" : "Open"})
+                          </span>
+                        </div>
+
+                        {!s.is_booked ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => book(s.availability_id)}
+                          >
+                            Book
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-
-                  {!s.is_booked && (
-                    <Button
-                      type="button"
-                      className="mt-2"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(
-                            `/api/availability/${s.availability_id}/book`,
-                            {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ user_id: 1 }), // demo user
-                            }
-                          );
-
-                          const payload = await res.json().catch(() => ({}));
-
-                          if (!res.ok) {
-                            alert(payload.error || "Failed to book");
-                            return;
-                          }
-
-                          setSlots((prev) =>
-                            prev.map((x) =>
-                              x.availability_id === payload.availability_id
-                                ? payload
-                                : x
-                            )
-                          );
-                        } catch (err) {
-                          console.error(err);
-                          alert("Failed to book (network/server error)");
-                        }
-                      }}
-                    >
-                      Book this time
-                    </Button>
-                  )}
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
 
+        {/* Contact form (restored) */}
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Your Name *</Label>
