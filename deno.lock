@@ -11,6 +11,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@emailjs/browser@^4.4.1",
         "npm:@radix-ui/react-accordion@^1.2.3",
         "npm:@radix-ui/react-alert-dialog@^1.1.6",
         "npm:@radix-ui/react-aspect-ratio@^1.1.2",
@@ -41,13 +42,18 @@
         "npm:@types/react@^18.2.43",
         "npm:@vitejs/plugin-react-swc@^4.2.2",
         "npm:@vitejs/plugin-react@^4.2.1",
+        "npm:bcryptjs@^3.0.3",
         "npm:class-variance-authority@~0.7.1",
         "npm:clsx@*",
         "npm:cmdk@^1.1.1",
+        "npm:cookie-parser@^1.4.7",
+        "npm:cookie@^1.1.1",
         "npm:cors@^2.8.5",
+        "npm:dotenv@^17.2.3",
         "npm:embla-carousel-react@^8.6.0",
         "npm:express@^4.21.1",
         "npm:input-otp@^1.4.2",
+        "npm:jsonwebtoken@^9.0.3",
         "npm:lucide-react@0.487",
         "npm:netlify-cli@^23.9.5",
         "npm:next-themes@~0.4.6",

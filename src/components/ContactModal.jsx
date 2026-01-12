@@ -20,6 +20,7 @@ import {
 } from "./ui/select";
 import { mockAvailabilityByAdId } from "../data/mockAvailability";
 import { getSlotsForAd, bookSlot } from "../data/availabilityStore";
+import { sendTableEmail } from "./SendMail";
 
 function formatRange(start, end) {
   try {
@@ -70,6 +71,7 @@ export function ContactModal({ tutor, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    sendTableEmail(formData.email, formData.message)
     alert(
       `Message sent to ${tutor.name}!\n\nYour details:\nName: ${formData.name}\nEmail: ${formData.email}\nInstrument: ${formData.instrument}`
     );
@@ -79,6 +81,8 @@ export function ContactModal({ tutor, onClose }) {
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+
 
   return (
     <Dialog open={true} onOpenChange={onClose}>

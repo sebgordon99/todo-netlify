@@ -10,7 +10,6 @@ const Tutor = sequelize.define(
       autoIncrement: true,
     },
 
-    // ✅ Needed for Tutor ↔ Locations FK
     location_id: {
       type: DataTypes.INTEGER,
       allowNull: true,

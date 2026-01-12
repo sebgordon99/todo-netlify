@@ -10,10 +10,9 @@ const Availability = sequelize.define(
       autoIncrement: true,
     },
 
-    // FK fields (match your DBML + controllers)
     user_id: {
       type: DataTypes.INTEGER,
-      allowNull: true, // null means "open slot not booked by anyone yet"
+      allowNull: true,
     },
     ad_id: {
       type: DataTypes.INTEGER,
@@ -43,7 +42,7 @@ const Availability = sequelize.define(
   },
   {
     tableName: "availabilities",
-    timestamps: false, // IMPORTANT: keep simple + match your earlier schema
+    timestamps: false,
     underscored: true,
   }
 );

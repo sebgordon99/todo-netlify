@@ -18,7 +18,7 @@ import { Music, Search, LogIn, UserPlus } from "lucide-react";
 import { pickStableAvatar } from "./utils/avatar";
 import { RegisterModal } from "./components/RegisterModal";
 
-// Small helper: fetch JSON and throw useful errors
+// Small helper: fetch JSON and throw useful errors-------------------------------------
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, {
     credentials: "include", // ALWAYS send cookies
@@ -97,7 +97,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentTutor, setCurrentTutor] = useState(null);
 
-  // Load DB ads on startup
+  // Load DB ads on startup ---------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -143,7 +143,7 @@ export default function App() {
     };
   }, []);
 
-  // Restore session from cookie (refresh-safe login)
+  // Restore session from cookie (refresh-safe login) --------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -486,6 +486,7 @@ export default function App() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {sortedTutors.map((tutor) => (
+                  //where tutor cards are rendered after the data is fetched-------------
                   <TutorCard
                     key={tutor.id}
                     tutor={tutor}
