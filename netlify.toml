@@ -3,7 +3,7 @@
   command = "npm run build"
 
 [functions]
-  node_bundler = "zisi"
+  node_bundler = "esbuild"
   
 [[redirects]]
   force = true
@@ -20,3 +20,6 @@
   command = "npm run dev"
   port = 8888
   targetPort = 5173
+
+  [build.environment]
+  NODE_VERSION = "18"
