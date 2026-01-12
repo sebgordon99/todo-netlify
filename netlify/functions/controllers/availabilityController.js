@@ -1,9 +1,7 @@
-import Availability from "../models/Availability.js";
+import Availability from "../models/availability.js";
 import Ad from "../models/ad.js";
 
-/**
- * Helpers
- */
+//Helpers
 async function assertTutorOwnsAd({ tutorId, adId }) {
   const ad = await Ad.findByPk(adId);
   if (!ad) {
@@ -21,10 +19,8 @@ async function assertTutorOwnsAd({ tutorId, adId }) {
   return ad;
 }
 
-/**
- * PUBLIC: Get availability for a given ad (used by marketplace / contact modal)
- * GET /api/availability/ad/:adId/public
- */
+//Get availability for a given ad (used by marketplace / contact modal)
+
 export const getAvailabilityForAdPublic = async (req, res) => {
   try {
     const adId = Number(req.params.adId);
@@ -44,11 +40,8 @@ export const getAvailabilityForAdPublic = async (req, res) => {
   }
 };
 
-/**
- * TUTOR: Get availability for one of MY ads
- * GET /api/availability/ad/:adId
- * requires requireAuth
- */
+//TUTOR: Get availability for one of MY ads
+
 export const getAvailabilityForMyAd = async (req, res) => {
   try {
     const tutorId = req.tutorId;
@@ -73,12 +66,8 @@ export const getAvailabilityForMyAd = async (req, res) => {
   }
 };
 
-/**
- * TUTOR: Create a new slot for one of MY ads
- * POST /api/availability
- * requires requireAuth
- * body: { ad_id, start_time, end_time, user_capacity? }
- */
+//TUTOR: Create a new slot for one of MY ads
+
 export const createAvailability = async (req, res) => {
   try {
     const tutorId = req.tutorId;
@@ -98,17 +87,16 @@ export const createAvailability = async (req, res) => {
 
     await assertTutorOwnsAd({ tutorId, adId });
 
-    // Optional: prevent duplicate exact slot
-    const existing = await Availability.findOne({
-      where: { ad_id: adId, start_time, end_time },
-    });
-    if (existing) {
-      return res.status(409).json({ error: "Slot already exists" });
-    }
+    // prevent duplicate exact slot
+    // const existing = await Availability.findOne({
+    //   where: { ad_id: adId, start_time, end_time },
+    // });
+    // if (existing) {
+    //   return res.status(409).json({ error: "Slot already exists" });
+    // }
 
     const availability = await Availability.create({
       ad_id: adId,
-      // demo approach: keep a user_id, but long-term you'd make it nullable
       user_id: 1,
       start_time,
       end_time,
@@ -123,12 +111,8 @@ export const createAvailability = async (req, res) => {
   }
 };
 
-/**
- * TUTOR: Update a slot (only if it belongs to one of MY ads)
- * PUT /api/availability/:id
- * requires requireAuth
- * body: { start_time?, end_time?, user_capacity? }
- */
+//TUTOR: Update a slot (only if it belongs to one of MY ads)
+
 export const updateAvailability = async (req, res) => {
   try {
     const tutorId = req.tutorId;
@@ -165,11 +149,8 @@ export const updateAvailability = async (req, res) => {
   }
 };
 
-/**
- * TUTOR: Delete a slot (only if it belongs to one of MY ads)
- * DELETE /api/availability/:id
- * requires requireAuth
- */
+//TUTOR: Delete a slot (only if it belongs to one of MY ads)
+
 export const deleteAvailability = async (req, res) => {
   try {
     const tutorId = req.tutorId;
@@ -198,11 +179,8 @@ export const deleteAvailability = async (req, res) => {
   }
 };
 
-/**
- * PUBLIC: Book an availability slot (demo)
- * POST /api/availability/:id/book
- * body: { user_id? }
- */
+// user: Book an availability slot (demo)
+
 export const bookAvailability = async (req, res) => {
   try {
     const slotId = Number(req.params.id);

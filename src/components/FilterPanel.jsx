@@ -49,19 +49,14 @@ export function FilterPanel({
         </div>
       </CardHeader>
 
-      {/* Slightly more overall spacing between sections */}
       <CardContent className="space-y-8">
         {/* Instruments Filter */}
         <div>
           <h3 className="mb-4">Instruments</h3>
 
-          {/* Slightly more spacing between items */}
           <div className="space-y-3">
             {availableInstruments.map((instrument) => (
-              <div
-                key={instrument}
-                className="flex items-center gap-3 py-0.5"
-              >
+              <div key={instrument} className="flex items-center gap-3 py-0.5">
                 <Checkbox
                   id={`instrument-${instrument}`}
                   checked={selectedInstruments.includes(instrument)}

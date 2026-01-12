@@ -45,7 +45,7 @@ const DAY_INDEX = {
   Sunday: 6,
 };
 
-// 6:00 -> 22:00 every 30 mins (adjust if you want wider)
+// 6:00 -> 22:00 every 30 mins
 const TIME_OPTIONS = (() => {
   const out = [];
   for (let h = 6; h <= 22; h++) {
@@ -111,7 +111,7 @@ function nextOccurrence(dayName) {
   const targetIdx = DAY_INDEX[targetDayNameNameSafe(dayName)];
   let diff = targetIdx - nowIdx;
   if (diff < 0) diff += 7;
-  // if same day, still allow "today" (we’ll set time after; if time already passed you can improve later)
+  // if same day, still allow "today"
   const d = new Date(now);
   d.setDate(d.getDate() + diff);
   d.setSeconds(0, 0);
@@ -203,8 +203,12 @@ export function TutorDashboard({ onLogout }) {
 
     const match = list.find(
       (i) =>
-        String(i.instrument_name || "").toLowerCase().trim() ===
-        String(instrumentName || "").toLowerCase().trim()
+        String(i.instrument_name || "")
+          .toLowerCase()
+          .trim() ===
+        String(instrumentName || "")
+          .toLowerCase()
+          .trim()
     );
     return match?.instrument_id ?? list[0].instrument_id;
   }
@@ -216,8 +220,12 @@ export function TutorDashboard({ onLogout }) {
 
     const match = list.find(
       (l) =>
-        String(l.location_name || "").toLowerCase().trim() ===
-        String(locationName || "").toLowerCase().trim()
+        String(l.location_name || "")
+          .toLowerCase()
+          .trim() ===
+        String(locationName || "")
+          .toLowerCase()
+          .trim()
     );
     return match?.location_id ?? list[0].location_id;
   }
@@ -317,7 +325,7 @@ export function TutorDashboard({ onLogout }) {
   async function loadAvailabilityForAd(adId) {
     setLoadingAvailFor(adId);
     try {
-      // Use the same endpoint as ContactModal (already exists)
+      // Use the same endpoint as ContactModal
       const slots = await fetchJson(`/api/ads/${adId}/availability`);
       setAvailabilityMap((prev) => ({
         ...prev,
@@ -450,7 +458,7 @@ export function TutorDashboard({ onLogout }) {
     }
   }
 
-  // ---------- map DB ad -> CreateAdvertisement initialData ----------
+  // ---------- map DB ad -> CreateAdvertisement initial Data ----------
   function adToFormInitial(ad) {
     return {
       name: me?.name ?? "",
@@ -583,7 +591,6 @@ export function TutorDashboard({ onLogout }) {
                           </div>
 
                           <div className="flex gap-2 md:justify-end">
-                            {/* ✅ Ad editing is back */}
                             <Button
                               variant="outline"
                               onClick={() => setEditingAd(ad)}
@@ -593,7 +600,6 @@ export function TutorDashboard({ onLogout }) {
                               Edit Ad
                             </Button>
 
-                            {/* ✅ Times management stays dropdown-based */}
                             <Button
                               variant="outline"
                               onClick={() => toggleAvailability(ad)}
@@ -614,7 +620,7 @@ export function TutorDashboard({ onLogout }) {
                           </div>
                         </div>
 
-                        {/* Availability panel (editable, simplified UI) */}
+                        {/* Availability panel */}
                         {isOpen && (
                           <div className="mt-4 border-t pt-4 space-y-3">
                             <div className="font-medium">
@@ -817,7 +823,9 @@ export function TutorDashboard({ onLogout }) {
 
                                             <Button
                                               variant="destructive"
-                                              onClick={() => deleteSlot(ad.ad_id, s)}
+                                              onClick={() =>
+                                                deleteSlot(ad.ad_id, s)
+                                              }
                                               disabled={saving || s.is_booked}
                                               title={
                                                 s.is_booked

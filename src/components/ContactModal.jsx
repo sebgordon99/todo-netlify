@@ -20,7 +20,7 @@ import {
 } from "./ui/select";
 import { sendTableEmail } from "./SendMail";
 
-// Same weekday ordering you want users to see
+// Same weekday ordering as users see
 const DAYS = [
   "Monday",
   "Tuesday",
@@ -111,9 +111,7 @@ export function ContactModal({ tutor, onClose }) {
 
     // sort within each day by start_time
     for (const day of Object.keys(out)) {
-      out[day].sort(
-        (a, b) => new Date(a.start_time) - new Date(b.start_time)
-      );
+      out[day].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
     }
 
     return out;
@@ -226,7 +224,7 @@ export function ContactModal({ tutor, onClose }) {
           )}
         </div>
 
-        {/* Contact form (restored) */}
+        {/* Contact form */}
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Your Name *</Label>
